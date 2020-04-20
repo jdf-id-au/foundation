@@ -1,4 +1,4 @@
-(ns foundation.client.dates
+(ns foundation.client.time
   (:require [oops.core :refer [oget oset!]]
             [tick.alpha.api :as t]
             [tick.format]
