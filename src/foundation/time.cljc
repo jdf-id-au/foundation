@@ -3,8 +3,7 @@
             [tick.core]
             [tick.format]
             #?@(:clj [[clojure.spec.alpha :as s]
-                      [clojure.spec.gen.alpha :as gen]
-                      [taoensso.timbre :as log]]
+                      [clojure.spec.gen.alpha :as gen]]
                 :cljs [[cljs.spec.alpha :as s]
                        [cljs.spec.gen.alpha :as gen]
                        [clojure.test.check.generators]
@@ -180,8 +179,3 @@
                         :no-end ::no-end
                         :no-start ::no-start
                         :open ::open))
-
-(defn conform
-  [date-pair]
-  (let [v (s/conform (s/nilable ::flexible) date-pair)]
-    (case v ::s/invalid (log/error "Invalid date pair" date-pair) v)))

@@ -1,6 +1,4 @@
 (ns foundation.time-test
-  (:require [clojure.test :refer :all]))
-(ns test.common.dates
   (:require #?@(:clj [[clojure.test :refer :all]
                       [clojure.spec.alpha :as s]
                       [clojure.spec.gen.alpha :as gen]]
@@ -8,11 +6,11 @@
                        [cljs.spec.alpha :as s]
                        [cljs.spec.gen.alpha :as gen]])
 
-            [common.dates :as d]))
+            [foundation.time :as t]))
 
 (def ds
   "Vector of unique dates, sorted ascending."
-  (->> (repeatedly #(gen/generate (s/gen ::d/date)))
+  (->> (repeatedly #(gen/generate (s/gen ::t/date)))
        (take 10) ; less repetition this way than when gen/sample starts up
        sort
        dedupe
@@ -28,26 +26,26 @@
     (vec (map conv [from to]))))
 
 (deftest within
-  (is (d/within? (ds 1) (eg :0-3)))
-  (is (d/within? (eg :1-2) (eg :0-3)))
-  (is (d/within? (eg :1-2) (eg :0->)))
-  (is (d/within? (eg :1-2) (eg :1-2))
+  (is (t/within? (ds 1) (eg :0-3)))
+  (is (t/within? (eg :1-2) (eg :0-3)))
+  (is (t/within? (eg :1-2) (eg :0->)))
+  (is (t/within? (eg :1-2) (eg :1-2))
       "Interval is 'within' itself, i.e. bounds inclusive.")
-  (is (not (d/within? (eg :1-2) (eg :1-2) true))
+  (is (not (t/within? (eg :1-2) (eg :1-2) true))
       "...unless explicitly request to exclude outer dates.")
-  (is (d/within? (eg :1-2) (eg :<->)))
-  (is (d/within? (eg :<-2) (eg :<->)))
-  (is (not (d/within? (eg :2-4) (eg :0-3))))
-  (is (not (d/within? (eg :0-3) (eg :1-2))))
-  (is (not (d/within? (eg :1->) (eg :0-3)))))
+  (is (t/within? (eg :1-2) (eg :<->)))
+  (is (t/within? (eg :<-2) (eg :<->)))
+  (is (not (t/within? (eg :2-4) (eg :0-3))))
+  (is (not (t/within? (eg :0-3) (eg :1-2))))
+  (is (not (t/within? (eg :1->) (eg :0-3)))))
 
 (deftest overlapping
-  (is (not (d/overlapping? [(eg :1-2) (eg :3-4)])))
-  (is (not (d/overlapping? [(eg :<-2) (eg :3-4)])))
-  (is (d/overlapping? [(eg :1-2) (eg :2-4)]))
-  (is (d/overlapping? [(eg :0->) (eg :1-2)])))
+  (is (not (t/overlapping? [(eg :1-2) (eg :3-4)])))
+  (is (not (t/overlapping? [(eg :<-2) (eg :3-4)])))
+  (is (t/overlapping? [(eg :1-2) (eg :2-4)]))
+  (is (t/overlapping? [(eg :0->) (eg :1-2)])))
 
 (deftest earliest-latest
-  (is (= (ds 0) (d/earliest (ds 1) (ds 0) nil (ds 2))))
-  (is (= (ds 2) (d/latest (ds 1) (ds 0) nil (ds 2))))
-  (is (nil? (d/latest nil nil))))
+  (is (= (ds 0) (t/earliest (ds 1) (ds 0) nil (ds 2))))
+  (is (= (ds 2) (t/latest (ds 1) (ds 0) nil (ds 2))))
+  (is (nil? (t/latest nil nil))))

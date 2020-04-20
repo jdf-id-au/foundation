@@ -5,6 +5,7 @@
 
         org.clojure/tools.cli {:mvn/version "1.0.194"}
         org.clojure/data.json {:mvn/version "0.2.6"}
+        org.clojure/test.check {:mvn/version "0.10.0"}
 
         ; yada uses clojure.xml which causes reflection warning on java11
         ; https://github.com/juxt/yada/issues/305#issuecomment-615994934
