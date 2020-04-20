@@ -1,0 +1,21 @@
+# For /etc/systemd/system/appname.service in ubuntu.
+# sudo systemctl daemon-reload
+# sudo systemctl enable appname.service
+# sudo systemctl start appname
+# systemctl status appname
+# sudo journalctl --unit=appname
+
+[Unit]
+Description=App description
+
+[Service]
+User=www-data
+# Make sure reverse proxy points at same port.
+ExecStart=/usr/bin/java -jar /var/www/appname/appname.jar -p 8080
+WorkingDirectory=/var/www/appname
+Type=simple
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
