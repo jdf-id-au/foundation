@@ -49,3 +49,16 @@
   (is (= (ds 0) (t/earliest (ds 1) (ds 0) nil (ds 2))))
   (is (= (ds 2) (t/latest (ds 1) (ds 0) nil (ds 2))))
   (is (nil? (t/latest nil nil))))
+
+(deftest duration
+  (let [d1 (t/new-date 2018 1 1)
+        d2 (t/new-date 2018 1 8)
+        d3 (t/new-date 2019 9 21)
+        d4 (t/new-date 2019 10 20)]
+    (testing "Duration calculation"
+      (is (= (t/in-days d1 d2) 7))
+      (is (= (t/in-days d1 d1) 0))
+      (is (= (t/in-days d2 d1) -7))
+      (is (= (t/in-days d3 d4) 29)))
+    (testing "Date range text"
+      (is (= "1–8 Jan 2018" (t/date-range-text [d1 d2]))))))
