@@ -1,1 +1,7 @@
-{:deps {}}
+{; NB Cursive's Local Clojure REPL needs to point at these aliases too
+ :deps {:aliases [:dev]}
+ :builds {:app {:target :browser
+                :output-dir "public/js"
+                :asset-path "/js"
+                :modules {:app {:entries [user]}}}}
+ :dev-http {8888 "public"}}

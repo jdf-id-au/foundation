@@ -19,7 +19,15 @@
         org.clojure/clojurescript
         {:git/url "https://github.com/clojure/clojurescript.git"
          :sha "e66131422cbd67c4a594e194f09b49f2c3ae3d2e"}
-        binaryage/oops {:mvn/version "0.7.0"}}}
+        binaryage/oops {:mvn/version "0.7.0"}
+        datascript {:mvn/version "0.18.11"}
+        lilactown/helix {:git/url "https://github.com/Lokeh/helix.git"
+                         :sha "ae8fc35d855f8be98d158d9d85409e0f187c97bc"}}
+
+ :aliases
+ {:test {:extra-paths ["dev" "test"]
+         :extra-deps {thheller/shadow-cljs {:mvn/version "2.8.83"}
+                      binaryage/devtools {:mvn/version "0.9.11"}}}}}
 
 ; TODO contemplate having three projects in one repo:
 ; foundation-common, foundation-client and foundation-server

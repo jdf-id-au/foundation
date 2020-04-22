@@ -1,0 +1,3 @@
+{:middleware [shadow.cljs.devtools.server.nrepl/middleware
+              cider.piggieback/wrap-cljs-repl]
+ :port 9999}

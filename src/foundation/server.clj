@@ -15,8 +15,7 @@
 
 (def config-filename "config.edn")
 (defn load-config
-  "Load config file (default `config.edn`) and
-   validate against schema (default `server-base.schema/Config`)."
+  "Load config file (default `config.edn`) and validate against schema."
   ([schema] (load-config schema config-filename))
   ([schema filename] (->> filename slurp edn/read-string (s/validate schema))))
 
