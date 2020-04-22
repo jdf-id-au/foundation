@@ -22,7 +22,10 @@
         binaryage/oops {:mvn/version "0.7.0"}
         datascript {:mvn/version "0.18.11"}
         lilactown/helix {:git/url "https://github.com/Lokeh/helix.git"
-                         :sha "ae8fc35d855f8be98d158d9d85409e0f187c97bc"}}
+                         :sha "ae8fc35d855f8be98d158d9d85409e0f187c97bc"}
+        bidi {:mvn/version "2.1.6"}
+        ; brings in transit
+        cljs-ajax {:mvn/version "0.8.0"}}
 
  :aliases
  {:test {:extra-paths ["dev" "test"]

@@ -1,13 +1,8 @@
 (ns foundation.client.state
   "Connect datascript store to React state."
-  (:require [helix.core :refer [$]]
-            [helix.hooks :as hooks]
-            ["react-dom" :refer [render]]
+  (:require [helix.hooks :as hooks]
             [datascript.core :as datascript]
-            [foundation.client.logging :as log])
-  (:require-macros [foundation.client.state]))
-
-; Subscriptions
+            [foundation.client.logging :as log]))
 
 (defonce store (datascript/create-conn)) ; adds meta :listeners
 (defonce subscriptions (atom {}))
@@ -43,6 +38,7 @@
         state (answer @store query process args)
         [_ set-state!] (hooks/use-state state)]
     (hooks/use-effect :always ; NB not specifying React deps (macro wants literal vector, not `args`)
+      ; FIXME too much remember/forget churn?
       (log/debug "Remembering setter for" name  "with args" args)
       (swap! setters assoc-in [name args] set-state!)
       (fn clean-up []
@@ -69,64 +65,5 @@
 
 (def transact! (partial datascript/transact! store))
 
-; Events
-
-(def cofx-defaults
-  "Map of :name -> [function & args]."
-  {})
-
-(def fx-defaults
-  "Map of :name -> function."
-  {:db transact!
-   :back #(.back js/window.history)})
-
-(defonce cofx (atom cofx-defaults))
-(defonce fx (atom fx-defaults))
-
-(defn retrieve-coeffect [name]
-  (or (get @cofx name)
-      (and (sub-exists? name) [(partial run-sub name)])
-      (log/error "No such coeffect" name)))
-
-(defn do!
-  "Allows event-fn to be pure by specifying coeffects (inputs),
-   then executing the returned effect descriptions (outputs).
-
-   Each coeffect can be a kw, or a vector containing kw then c-args.
-
-   This kw can be a subscription nskw, or a kw corresponding to a [fn & f-args] vector
-   from the `cofx` map atom.
-
-   The coeffect subscription or fn is called with (concatenated) f-args and c-args.
-
-   Coeffects can't currently depend on each other.
-
-   Event-fn is called with (concatenated) coeffect return values, then args.
-
-   Effect descriptions are vectors containing [kw & e-args]. The corresponding fn from the
-   `fx` map atom is called with e-args. :no-op can be used for clarity if no effect is required."
-  [name event-fn coeffects args]
-  (log/debug "Firing" name "with" coeffects "and" args)
-  (let [cvalues (into {} (for [coeffect coeffects
-                               :let [[cname & cargs] (if (coll? coeffect) coeffect [coeffect])
-                                     [cfn & fargs] (retrieve-coeffect cname)]]
-                           [coeffect (apply cfn (concat fargs cargs))]))]
-    (doseq [[ename & eargs] (apply event-fn (concat (map #(get cvalues %) coeffects) args))
-            :when (not= ename :no-op)]
-      (if-let [effect-fn (get @fx ename)]
-        (do (log/info "Firing effect-fn" ename eargs)
-            (try (apply effect-fn eargs)
-                 (catch :default e
-                   (log/error "Error executing effect" ename "with" args ":" e))))
-        (if ename
-          (log/error "No such effect-fn" ename eargs fx)
-          (log/error "Nil effect-fn" ename eargs fx))))))
-
-; Startup
-
-(defn start!
-  [coeffects effects root-component mount-point]
-  (reset! cofx (merge cofx-defaults coeffects))
-  (reset! fx (merge fx-defaults effects))
-  (datascript/listen! store :subs watcher)
-  (render ($ root-component) (. js/document getElementById mount-point)))
+(defn listen! []
+  (datascript/listen! store :subs watcher))

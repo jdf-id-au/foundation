@@ -7,6 +7,9 @@
 (def warn js/console.warn)
 (def error js/console.error)
 (defn show [v] (debug v) v)
+(defn throw [& args]
+  (apply error args)
+  (throw (js/Error. (apply str (interpose " " args)))))
 
 (defn table
   ([x] (js/console.table

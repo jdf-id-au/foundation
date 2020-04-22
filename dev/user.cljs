@@ -1,21 +1,22 @@
 (ns user
   (:require [helix.core :refer [defnc $ <>]]
             ["react-dom" :refer [render]]
-            [foundation.client.state :as state]
+            [foundation.client.api :as f]
             [foundation.client.config :as config]
             [foundation.time :as time]
             [foundation.client.logging :as log]))
 
-(state/store! {} [{:name "John"}
-                  {:name "Dev"}])
+(f/store! {} [{:name "John"}
+              {:name "Dev"}])
 
-(state/register :example '[:find [?n ...] :where [?e :name ?n]])
+(f/register :example '[:find [?n ...] :where [?e :name ?n]])
 
-(state/defevent click (fn [co msg] [[:clicked co msg]
-                                    [:db [{:name (str (rand-int 100))}]]]) :co)
+(f/defevent click (fn [co msg] [[:clicked co msg]
+                                [:db [{:name (str (rand-int 100))}]]])
+                :co)
 
 (defnc app []
-  (let [eg-sub (state/subscribe :example)]
+  (let [eg-sub (f/subscribe :example)]
     (<> ($ :h1 "jdf/foundation")
         ($ :h2 "v" (:version config/config))
         ($ :div "debug mode: " (if config/debug? "on" "off"))
@@ -28,11 +29,11 @@
         ($ :button {:on-click #(click "argument")} "click me"))))
 
 (defn ^:dev/after-load start-up []
-  (state/start!
+  (f/start!
+    app "app"
     {:co [str "coeffect"]
      :now [time/now]}
-    {:clicked println}
-    app "app"))
+    {:clicked println}))
 
 (defn init []
   (start-up))

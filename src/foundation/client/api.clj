@@ -1,9 +1,4 @@
-(ns foundation.client.state)
-
-(defn do!
-  "Dummy for clojure. See cljs for realz."
-  [name event-fn coeffects args]
-  (println "Called dummy do! with" name event-fn coeffects args))
+(ns foundation.client.api)
 
 (defmacro defevent
   "Define two fns: <name> for actual use and <name>-impl for testing.
@@ -14,7 +9,8 @@
         impl-name# (str name "-impl")
         impl-doc# (str "Implementation of event called `" name "` for use with coeffects " cofx#)]
     `(do
-       ; FIXME no arity warnings or docstrings in clojurescript
+       ; FIXME no docstring in clojurescript (do get arity warning)
        (def ^{:doc ~impl-doc#} ~(symbol impl-name#) ~event-fn)
+       ; FIXME no arity warning or docstring in clojurescript
        (defn ~(symbol name) ~doc#
-         [& ~'args] (~'foundation.client.state/do! ~(str name) ~event-fn '~cofx# (vec ~'args))))))
+         [& ~'args] (~'foundation.client.events/do! ~(str name) ~event-fn '~cofx# (vec ~'args))))))
