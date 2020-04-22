@@ -10,9 +10,8 @@
 
 (defn store!
   "Set up datascript store."
-  ([schema] (store! schema []))
-  ([schema tx-data] (reset! store (-> (datascript/empty-db schema)
-                                      (datascript/db-with tx-data)))))
+  [schema tx-data] (reset! store (-> (datascript/empty-db schema)
+                                     (datascript/db-with tx-data))))
 
 (defn register
   "Register a subscription, being a query and optional post-processing function."

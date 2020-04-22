@@ -1,4 +1,5 @@
 (ns user
+  "Dev proof of concept, not a substitute for formal testing."
   (:require [helix.core :refer [defnc $ <>]]
             ["react-dom" :refer [render]]
             [foundation.client.api :as f]
@@ -29,11 +30,10 @@
         ($ :button {:on-click #(click "argument")} "click me"))))
 
 (defn ^:dev/after-load start-up []
-  (f/start!
-    app "app"
-    {:co [str "coeffect"]
-     :now [time/now]}
-    {:clicked println}))
+  (f/start! {:root-component app
+             :coeffects {:co [str "coeffect"]
+                         :now [time/now]}
+             :effects {:clicked println}}))
 
 (defn init []
   (start-up))

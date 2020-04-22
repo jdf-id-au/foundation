@@ -2,7 +2,7 @@
 
 (defmacro defevent
   "Define two fns: <name> for actual use and <name>-impl for testing.
-   See documentation for foundation.client.state/do!"
+   See documentation for foundation.client.events/do!"
   [name event-fn & coeffects]
   (let [cofx# (vec coeffects)
         doc# (str "Event called `" name "` with coeffects " cofx#)

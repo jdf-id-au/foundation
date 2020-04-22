@@ -1,23 +1,14 @@
 (ns foundation.client.events
   (:require [foundation.client.state :as state]
-            [foundation.client.logging :as log]))
+            [foundation.client.logging :as log])
+  (:require-macros [foundation.client.api]))
 
-(def cofx-defaults
-  "Map of :name -> [function & args]."
-  {})
+(defonce cofx (atom {}))
+(defonce fx (atom {}))
 
-(def fx-defaults
-  "Map of :name -> function."
-  {:db state/transact!
-   :debug log/debug
-   :back #(.back js/window.history)})
-
-(defonce cofx (atom cofx-defaults))
-(defonce fx (atom fx-defaults))
-
-(defn redefine! [coeffects effects]
-  (reset! cofx (merge cofx-defaults coeffects))
-  (reset! fx (merge fx-defaults effects)))
+(defn setup! [coeffects effects]
+  (reset! cofx coeffects)
+  (reset! fx effects))
 
 (defn retrieve-coeffect [name]
   (or (get @cofx name)
@@ -57,3 +48,13 @@
         (if ename
           (log/throw "No such effect" ename eargs fx)
           (log/throw "Nil effect" ename eargs fx))))))
+
+(foundation.client.api/defevent navigate
+  (fn -navigate [current-view current-rps view route-params]
+    (let [rps (into {} (map (juxt first (comp str second)) route-params))]
+      (if-not (and (= view current-view)
+                   (= rps current-rps))
+        (letfn [(go [v r] (do (log/debug "Purely going" v r)
+                              [[:db {:app/view v :app/route-params r}]
+                               [:navigate v r]]))]))))
+  :app/view :app/route-params)
