@@ -1,4 +1,4 @@
-(ns foundation.message ; FIXME *** completely unadapted from Leavetracker
+(ns foundation.message ; FIXME *** adapt from Leavetracker
   "Define messages to be sent between client and server."
   (:require [cognitect.transit :as transit]
             [time-literals.read-write]
@@ -24,7 +24,7 @@
                                           Duration
                                           Year
                                           YearMonth]]]))
-  #?(:cljs (:require-macros [common.message :refer [message]]))
+  #?(:cljs (:require-macros [foundation.message :refer [message]]))
   #?(:clj (:import (java.io ByteArrayOutputStream ByteArrayInputStream)
                    (java.time Period
                               LocalDate
@@ -117,7 +117,6 @@
              (~'s/cat :type #{~type} ~@catspec))))
 
 (defmulti ->client first)
-; NB also see ::db/error and db/error
 (message :error ->client :code keyword? :message string? :context (s/? any?))
 (message :ready ->client)
 (s/def ::->client (s/multi-spec ->client retag))
@@ -144,10 +143,9 @@
     msg))
 
 ; Cursive doesn't get docstrings right if (defmulti receive #?(:clj...)).
-#?(:clj  (defmulti receive
-           "Called by `ws-receive` with [ws-send clients user roles conformed-msg]. See specs.
-            Use desktop.connection/receive in desktop client!"
+#?(:clj  (defmulti receive ; TODO *** implement
+           "Called by `ws-receive` with [ws-send clients user roles conformed-msg]. See specs."
            (fn dispatch [clients user roles {:keys [type]}] type))
-   :cljs (defmulti receive
-           "Called by `do!` within `client.connection/receive`."
+   :cljs (defmulti receive ; TODO *** implement
+           "Called by `client.connection/receive`."
            :type))

@@ -1,7 +1,7 @@
 (ns foundation.client.events
   (:require [foundation.client.state :as state]
             [foundation.client.logging :as log])
-  (:require-macros [foundation.client.api]))
+  (:require-macros [foundation.client.api :refer [defevent]]))
 
 (defonce cofx (atom {}))
 (defonce fx (atom {}))
@@ -49,7 +49,7 @@
           (log/throw "No such effect" ename eargs fx)
           (log/throw "Nil effect" ename eargs fx))))))
 
-(foundation.client.api/defevent navigate
+(defevent navigate
   (fn -navigate [current-view current-rps view route-params]
     (let [rps (into {} (map (juxt first (comp str second)) route-params))]
       (if-not (and (= view current-view)

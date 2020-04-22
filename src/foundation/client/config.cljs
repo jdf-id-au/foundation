@@ -19,3 +19,10 @@
     (merge (dissoc from-disk :dev)
            (if debug? dev)
            (js->clj js/config :keywordize-keys true))))
+
+(defn api ; FIXME ***
+  ([path] (api "http" path))
+  ([scheme path]
+   (let [{:keys [tls host port root]} config]
+     (str scheme (if tls "s") "://"
+          host ":" port root path))))

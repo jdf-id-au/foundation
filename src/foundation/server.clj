@@ -9,7 +9,9 @@
             [clojure.edn :as edn]
             [clojure.data.json :as json]
             [byte-streams :as bs]
-            [clojure.java.io :as io]))
+            [clojure.java.io :as io]
+            [taoensso.timbre :as log]
+            [foundation.logging :refer [pprint-middleware]]))
 
 ; Config
 
@@ -27,8 +29,8 @@
   @(-> (http/post "https://www.google.com/recaptcha/api/siteverify"
                   {:form-params {:secret secret :response response}})
        (d/chain :body bs/to-string #(json/read-str % :key-fn keyword))
-       (d/catch (fn [e] (println "Error verifying reCAPTCHA"
-                                 (.getClass e) (.getMessage e))))))
+       (d/catch (fn [e] (log/warn "Error verifying reCAPTCHA"
+                                  (.getClass e) (.getMessage e))))))
 
 (defn human?
   [{:keys [parameters] :as ctx}
@@ -80,7 +82,11 @@
     :default 8000
     :parse-fn #(Integer/parseInt %)
     :validate [#(<= 8000 % 8999) "Please use port in range 8000-8999."]]
-   ["-n" "--dry-run" "Run without doing anything important."]])
+   ["-n" "--dry-run" "Run without doing anything important."]
+   ["-l" "--log-level LEVEL" "Set log level."
+    :default :info
+    :parse-fn keyword
+    :validate #{:debug :info :warn}]])
 
 (defn roll-up
   "Roll up relevant cli options into config (default: port and dry-run)."
@@ -90,15 +96,17 @@
 (defn validate-args
   [desc cli-options args]
   (let [{:keys [options arguments summary errors]} (cli/parse-opts args cli-options)
-        {:keys [help]} options
+        {:keys [help log-level]} options
         summary (str desc \newline summary)]
     (cond errors {:exit [1 (apply str (interpose \newline (cons summary errors)))]}
           help {:exit [0 summary]}
-          :else {:options options :arguments arguments})))
+          :else (do (log/merge-config! {:log-level log-level
+                                        :middleware [pprint-middleware]})
+                    {:options options :arguments arguments}))))
 
 (defn exit
   [exit-code exit-message]
-  (println exit-message)
+  ((if (zero? exit-code) log/info log/error)  exit-message)
   (System/exit exit-code))
 
 (defn cli
