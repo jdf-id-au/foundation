@@ -145,7 +145,7 @@
 ; Cursive doesn't get docstrings right if (defmulti receive #?(:clj...)).
 #?(:clj  (defmulti receive ; TODO *** implement
            "Called by `ws-receive` with [ws-send clients user roles conformed-msg]. See specs."
-           (fn dispatch [clients user roles {:keys [type]}] type))
+           (fn dispatch [clients user {:keys [type]}] type))
    :cljs (defmulti receive ; TODO *** implement
            "Called by `client.connection/receive`."
            :type))

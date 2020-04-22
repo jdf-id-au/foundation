@@ -55,7 +55,7 @@
       (if-not (and (= view current-view)
                    (= rps current-rps))
         (letfn [(go [v r] (do (log/debug "Purely going" v r)
-                              [[:db [{:app/state :ui :app/view v :app/route-params r}]]
+                              [[:db [{:app/state :ui :view v :route-params r}]]
                                [:navigate v r]]))
                 (navigate [] (go view rps))
                 (not-found [] (go :not-found nil))]
@@ -66,4 +66,4 @@
           #_(case view
               (:not-found :home) (navigate))))))
               ; else
-  :app/view :app/route-params)
+  :ui/view :ui/route-params)

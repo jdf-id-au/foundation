@@ -5,7 +5,7 @@
                 :cljs [[cljs.spec.alpha :as s]
                        [cljs.spec.gen.alpha :as gen]
                        [clojure.test.check.generators]]))
-  #?(:cljs (:require-macros [common.gen :refer [dict]]))
+  #?(:cljs (:require-macros [foundation.gen :refer [dict]]))
   (:refer-clojure :exclude [name comment]))
 
 #?(:clj (def words

@@ -5,7 +5,8 @@
             [foundation.client.logging :as log]
             [foundation.client.default :as default]
             ["react-dom" :refer [render]]
-            [helix.core :refer [$]])
+            [helix.core :refer [$]]
+            [foundation.client.config :as config])
   (:require-macros [foundation.client.api]))
 
 (defn store!
@@ -20,8 +21,9 @@
   [{:keys [root-component mount-point coeffects effects routes]
     :or {mount-point "app"}}]
   (events/setup! (merge default/coeffects coeffects) (merge default/effects effects))
-  (doseq [[name query] default/subscriptions] (state/register name query))
+  (run! #(apply state/register %) default/subscriptions)
   (history/setup! (or routes default/routes))
   (state/listen!)
   (history/listen!)
+  (log/info "version" (:version config/config))
   (render ($ root-component) (. js/document getElementById mount-point)))

@@ -11,7 +11,9 @@
             [byte-streams :as bs]
             [clojure.java.io :as io]
             [taoensso.timbre :as log]
-            [foundation.logging :refer [pprint-middleware]]))
+            [foundation.logging :refer [pprint-middleware]]
+            [foundation.message :as message :refer [format-stream ->transit <-transit]]
+            [manifold.stream :as st]))
 
 ; Config
 
@@ -21,7 +23,7 @@
   ([schema] (load-config schema config-filename))
   ([schema filename] (->> filename slurp edn/read-string (s/validate schema))))
 
-; Server
+; Recaptcha
 
 (defn recaptcha!
   "Verify recaptcha synchronously."
@@ -39,6 +41,85 @@
         {:keys [success score]} (recaptcha! recaptcha-secret g-recaptcha-response)]
     (and success (< 0.5 score))))
 
+; Websocket
+
+(def conform (partial message/conform ::message/->client))
+(def validate (partial message/conform ::message/->server))
+
+(def clients "Map of websocket-> nothing yet!" (atom {})) ; TODO ***
+
+(defn ws-send
+  "Send `msg` to connected `user`s over their registered websocket/s.
+  See `common.message` specs."
+  [user-msg-map]
+  (doseq [[user msg] user-msg-map
+          :let [[type & _ :as validated]
+                (or (validate msg) [:error :outgoing "Problem generating server reply." msg])
+                [ws u] @clients
+                :when (= u user)]]
+    (if (= type :error) (log/warn "Telling" user "about server error" msg))
+    (-> (st/put! ws validated)
+        (d/chain #(if-not % (log/info "Failed to send" msg "to" user)
+                            #_ (log/debug "Sent" msg "to" user)))
+        (d/catch #(log/info "Error sending" msg "to" user %)))))
+
+(defn ws-receive
+  "Acknowledge request with appropriate reply."
+  [user msg]
+  (ws-send (if-let [conformed (conform msg)]
+             (message/receive clients nil conformed)
+             {nil [:error :incoming "Invalid message sent to server." msg]})))
+
+(defn setup-websocket
+  "Maintain registry of clients" ; TODO *** and all the rest! see Leavetracker
+  ; TODO need to have some idea who's who; could do by ip?
+  ; better not to open ws for allcomers, should auth somehow first?
+  [ws]
+  (let [formatted-ws (format-stream ws ->transit <-transit)
+        ws-hash (hash formatted-ws)]
+    (log/debug "Preparing websocket" ws-hash)
+    (st/on-closed formatted-ws (fn [] (log/debug "Disconnected" ws-hash)
+                                      (swap! clients dissoc formatted-ws)))
+    (swap! clients assoc formatted-ws :nothing-useful-yet)
+    (st/put! formatted-ws [:ready])
+    (log/debug "Web socket ready" ws-hash)
+    (st/consume (partial ws-receive) formatted-ws)))
+
+(defn websocket-handler [req]
+  ; FIXME need to harden this public exposed endpoint
+  (-> (http/websocket-connection req)
+      (d/chain setup-websocket)
+      (d/catch (fn [& args]
+                 (log/info "Websocket exception" args)
+                 {:status 400
+                  :headers {"Content-type" "text/plain"}
+                  :body "Expected a websocket request"}))))
+
+; Auth
+
+(def failure
+  {:produces "application/transit+json"
+   :response (fn [ctx] (->transit (-> ctx :error Throwable->map
+                                      (select-keys [:cause :data]))))})
+
+#_(def login
+    (yada/resource
+      {:id :login
+       :responses (zipmap [401 403 500] (repeat failure))
+       :methods
+       {:get
+        {:produces "application/transit+json"
+         :response
+         (fn [ctx]
+           (let [{:keys [user] :as auth-map}
+                 (get-in ctx [:authentication "default"])]
+             ; "default" is realm
+             ; value seems to be response from verify:
+             ; {:user "username", :roles #{:role}}
+             (->transit {:user user :token (auth/write-token auth-map)})))}}}))
+
+; Server
+
 (defn add-nonce [ctx]
   (assoc ctx :nonce (rand-int 1e6)))
 
@@ -55,7 +136,7 @@
                :get {:produces "text/html"
                      :response :response?}
                :post {:consumes "application/x-www-form-urlencoded"
-                      :parameters {:form :spec?}
+                      :parameters {:form :schema?}
                       :produces "text/html"
                       :response :response?}}
      :responses {400 {:produces "text/html"

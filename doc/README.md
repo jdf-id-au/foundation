@@ -15,7 +15,7 @@ Ffff-framework for client-server web applications.
 
 ## Common
 - cross-platform time handling via [tick](https://github.com/juxt/tick) and some massaging/extra functions
-- TODO data sharing over [transit](https://github.com/cognitect/transit-format)
+- TODO communication over [transit](https://github.com/cognitect/transit-format)
 - TODO validated ws messages via [spec](https://clojure.org/about/spec)
 
 ## Server
