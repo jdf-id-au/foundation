@@ -13,8 +13,9 @@
 
 (defn store!
   "Set up datascript store."
-  [schema]
-  (reset! store (datascript/empty-db schema)))
+  ([schema] (store! schema []))
+  ([schema tx-data] (reset! store (-> (datascript/empty-db schema)
+                                      (datascript/db-with tx-data)))))
 
 (defn register
   "Register a subscription, being a query and optional post-processing function."
@@ -35,7 +36,7 @@
 (defn subscribe
   "Wire up React set-state! for given subscription.
    args are passed to the subscription's query *and* its post-processing function."
-  [name args]
+  [name & args]
   (let [[query process] (name @subscriptions)
         state (answer @store query process args)
         [_ set-state!] (hooks/use-state state)]
