@@ -9,7 +9,7 @@
 
 ; Subscriptions
 
-(defonce store (atom (datascript/create-conn))) ; adds meta :listeners
+(defonce store (datascript/create-conn)) ; adds meta :listeners
 (defonce subscriptions (atom {}))
 (defonce setters (atom {}))
 
@@ -67,15 +67,21 @@
           :let [result (answer db-after query process args)]]
     (setter result)))
 
-(defn listen!
-  "Connect store to React."
-  [store]
-  (datascript/listen! store :subs watcher))
+(def transact! (partial datascript/transact! store))
 
 ; Events
 
-(defonce cofx (atom {})) ; {:name [function & args]}
-(defonce fx (atom {:back #(.back js/window.history)})) ; {:name function}
+(def cofx-defaults
+  "Map of :name -> [function & args]."
+  {})
+
+(def fx-defaults
+  "Map of :name -> function."
+  {:db transact!
+   :back #(.back js/window.history)})
+
+(defonce cofx (atom cofx-defaults))
+(defonce fx (atom fx-defaults))
 
 (defn retrieve-coeffect [name]
   (or (get @cofx name)
@@ -120,6 +126,7 @@
 
 (defn start!
   [coeffects effects root-component mount-point]
-  (reset! cofx coeffects)
-  (reset! fx effects)
+  (reset! cofx (merge cofx-defaults coeffects))
+  (reset! fx (merge fx-defaults effects))
+  (datascript/listen! store :subs watcher)
   (render ($ root-component) (. js/document getElementById mount-point)))

@@ -11,7 +11,8 @@
 
 (state/register :example '[:find [?n ...] :where [?e :name ?n]])
 
-(state/defevent click (fn [co msg] [[:clicked co msg]]) :co)
+(state/defevent click (fn [co msg] [[:clicked co msg]
+                                    [:db [{:name (str (rand-int 100))}]]]) :co)
 
 (defnc app []
   (let [eg-sub (state/subscribe :example)]
@@ -21,8 +22,8 @@
         ($ :div "config from html: " (:from_html config/config))
         ($ :div "subscription:")
         ($ :ul
-          (for [s eg-sub] ; TODO add keys for React
-            ($ :li s)))
+          (for [s eg-sub]
+            ($ :li {:key s} s)))
         ($ :div (time/format "hh:mm dd MMM yyyy" (time/now)))
         ($ :button {:on-click #(click "argument")} "click me"))))
 
