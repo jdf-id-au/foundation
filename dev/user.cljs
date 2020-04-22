@@ -11,15 +11,20 @@
 
 (state/register :example '[:find [?n ...] :where [?e :name ?n]])
 
+;(state/defevent click (fn [co1] [:update :this co1]) "co1")
+
 (defnc app []
   (let [eg-sub (state/subscribe :example)]
     (<> ($ :h1 "jdf/foundation")
         ($ :h2 "v" (:version config/config))
-        ($ :div "debug mode " (if config/debug? "on" "off"))
-        ($ :div "config from html " (:from_html config/config))
-        (for [s eg-sub]
-          ($ :div "subscription " s))
-        ($ :div (time/format "hh:mm dd MMM yyyy" (time/now))))))
+        ($ :div "debug mode: " (if config/debug? "on" "off"))
+        ($ :div "config from html: " (:from_html config/config))
+        ($ :div "subscription:")
+        ($ :ul
+          (for [s eg-sub]
+            ($ :li s)))
+        ($ :div (time/format "hh:mm dd MMM yyyy" (time/now)))
+        ($ :button {:on-click #()}))))
 
 (defn register-effects! []
   (swap! state/cofx assoc

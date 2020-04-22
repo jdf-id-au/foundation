@@ -97,7 +97,7 @@
 
    Effect descriptions are vectors containing [kw & e-args]. The corresponding fn from the
    `fx` map atom is called with e-args. :no-op can be used for clarity if no effect is required."
-  [event-fn coeffects & args]
+  [event-fn coeffects args]
   (log/debug "Firing" event-fn "with" coeffects "and" args)
   (let [cvalues (into {} (for [coeffect coeffects
                                :let [[cname & cargs] (if (coll? coeffect) coeffect [coeffect])
