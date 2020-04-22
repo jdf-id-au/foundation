@@ -21,25 +21,18 @@
         ($ :div "config from html: " (:from_html config/config))
         ($ :div "subscription:")
         ($ :ul
-          (for [s eg-sub]
+          (for [s eg-sub] ; TODO add keys for React
             ($ :li s)))
         ($ :div (time/format "hh:mm dd MMM yyyy" (time/now)))
         ($ :button {:on-click #(click "argument")} "click me"))))
 
-(defn register-effects! []
-  (swap! state/cofx assoc
-    :co [str "coeffect"]
-    :now [time/now])
-  (swap! state/fx assoc
-    :clicked println))
-
-(defn ^:dev/after-load mount-root []
-  (render ($ app) (. js/document getElementById "app")))
+(defn ^:dev/after-load start-up []
+  (state/start!
+    {:co [str "coeffect"]
+     :now [time/now]}
+    {:clicked println}
+    app "app"))
 
 (defn init []
-  (register-effects!)
-  (mount-root))
+  (start-up))
 
-#_ (reset! state/cofx {})
-#_ (reset! state/fx {})
-#_ (register-effects!)

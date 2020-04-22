@@ -1,6 +1,8 @@
 (ns foundation.client.state
   "Connect datascript store to React state."
-  (:require [helix.hooks :as hooks]
+  (:require [helix.core :refer [$]]
+            [helix.hooks :as hooks]
+            ["react-dom" :refer [render]]
             [datascript.core :as datascript]
             [foundation.client.logging :as log])
   (:require-macros [foundation.client.state]))
@@ -113,3 +115,11 @@
         (if ename
           (log/error "No such effect-fn" ename eargs fx)
           (log/error "Nil effect-fn" ename eargs fx))))))
+
+; Startup
+
+(defn start!
+  [coeffects effects root-component mount-point]
+  (reset! cofx coeffects)
+  (reset! fx effects)
+  (render ($ root-component) (. js/document getElementById mount-point)))
