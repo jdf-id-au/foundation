@@ -6,12 +6,12 @@
             [foundation.time :as time]
             [foundation.client.logging :as log]))
 
-(state/store! {} [{:name "someone"}
-                  {:name "anotherone"}])
+(state/store! {} [{:name "John"}
+                  {:name "Dev"}])
 
 (state/register :example '[:find [?n ...] :where [?e :name ?n]])
 
-;(state/defevent click (fn [co1] [:update :this co1]) "co1")
+(state/defevent click (fn [co msg] [[:clicked co msg]]) :co)
 
 (defnc app []
   (let [eg-sub (state/subscribe :example)]
@@ -24,12 +24,14 @@
           (for [s eg-sub]
             ($ :li s)))
         ($ :div (time/format "hh:mm dd MMM yyyy" (time/now)))
-        ($ :button {:on-click #()}))))
+        ($ :button {:on-click #(click "argument")} "click me"))))
 
 (defn register-effects! []
   (swap! state/cofx assoc
-    :now [time/now]))
-
+    :co [str "coeffect"]
+    :now [time/now])
+  (swap! state/fx assoc
+    :clicked println))
 
 (defn ^:dev/after-load mount-root []
   (render ($ app) (. js/document getElementById "app")))
@@ -37,3 +39,7 @@
 (defn init []
   (register-effects!)
   (mount-root))
+
+#_ (reset! state/cofx {})
+#_ (reset! state/fx {})
+#_ (register-effects!)
