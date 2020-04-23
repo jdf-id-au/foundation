@@ -54,24 +54,25 @@
          :disconnect (.close -websocket))
        (catch :default e (log/error e))))
 
-; Ajax - validated on server with prismatic/schema uuugh
+; Ajax ; TODO plug into similar validation system as ws (plus endpoint validation?)
 
 (defn get!
   "Ajax query"
   [endpoint handler failer]
   (ajax/GET (config/api endpoint)
             {:timeout (:timeout config/config)
-             :handler handler
+             :handler handler ; TODO handler needs to validate received message
              :error-handler failer}))
 
 (defn post!
   "Ajax command"
   [endpoint message handler failer]
-  (ajax/PUT (config/api endpoint)
-            {:timeout (:timeout config/config)
-             :handler handler
-             :error-handler failer
-             :format :transit}))
+  (ajax/POST (config/api endpoint)
+             {:timeout (:timeout config/config)
+              :handler handler
+              :error-handler failer
+              :body message ; TODO message needs to be validated first
+              :format :transit}))
 
 (defn delete!
   "Ajax command"
