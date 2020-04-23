@@ -175,10 +175,10 @@
     :validate [#{:debug :info :warn} "Please use debug, info or warn."]]])
 
 (def --allow-origin
-  ["-o" "--allow-origin HOST" "Allow api use from sites served at this host."
-   :parse-fn #(re-seq schema/URI %)
-   :validate [(fn [[[_ scheme host port path]]]
-                (and scheme host (not path) true))
+  ["-o" "--allow-origin HOST" "Allow api use from sites served at this (single) host."
+   :validate [(fn [host]
+                (let [[_ scheme host port path] (->> host (re-seq schema/URI) first)]
+                  (and scheme host (not path) true)))
               "Invalid host."]])
 
 (defn roll-up

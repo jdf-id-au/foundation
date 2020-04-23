@@ -4,7 +4,7 @@
 (def default
   "Default config here, not foundation.client.default because of circular dependency."
   {:timeout 5000
-   :log-level :warn})
+   :log-level :info})
 
 (def debug? ^boolean goog.DEBUG)
 (def config
