@@ -11,7 +11,8 @@
             [byte-streams :as bs]
             [clojure.java.io :as io]
             [taoensso.timbre :as log]
-            [foundation.logging :refer [pprint-middleware]]
+            [foundation.schema :as schema]
+            [foundation.logging :refer [configure]]
             [foundation.message :as message :refer [format-stream ->transit <-transit]]
             [manifold.stream :as st]))
 
@@ -21,7 +22,10 @@
 (defn load-config
   "Load config file (default `config.edn`) and validate against schema."
   ([schema] (load-config schema config-filename))
-  ([schema filename] (->> filename slurp edn/read-string (s/validate schema))))
+  ([schema filename]
+   (let [config (->> filename slurp edn/read-string)]
+     #_(log/debug "Intepreting config" config "against" schema)
+     (s/validate schema config))))
 
 ; Recaptcha
 
@@ -55,8 +59,8 @@
   (doseq [[user msg] user-msg-map
           :let [[type & _ :as validated]
                 (or (validate msg) [:error :outgoing "Problem generating server reply." msg])
-                [ws u] @clients
-                :when (= u user)]]
+                [ws u] @clients]
+          :when (= u user)]
     (if (= type :error) (log/warn "Telling" user "about server error" msg))
     (-> (st/put! ws validated)
         (d/chain #(if-not % (log/info "Failed to send" msg "to" user)
@@ -131,16 +135,17 @@
             ; https://github.com/google/recaptcha/issues/107
             (str "script-src 'unsafe-eval' 'nonce-" nonce "';")))
 
-#_(def resource-template
-    {:methods {; TODO deal with GET queries :parameters {:query :spec?}...
-               :get {:produces "text/html"
-                     :response :response?}
-               :post {:consumes "application/x-www-form-urlencoded"
-                      :parameters {:form :schema?}
-                      :produces "text/html"
-                      :response :response?}}
-     :responses {400 {:produces "text/html"
-                      :response :response?}}})
+#_(def example-routes
+    ["/" {"" (server/resource
+               {:methods {; TODO deal with GET queries :parameters {:query :spec?}...
+                          :get {:produces "text/html"
+                                :response :response?}
+                          :post {:consumes "application/x-www-form-urlencoded"
+                                 :parameters {:form :schema?}
+                                 :produces "text/html"
+                                 :response :response?}}
+                :responses {400 {:produces "text/html"
+                                 :response :response?}}})}])
 
 (defn resource
   "Make yada resource with nonce and Content Security Policy."
@@ -167,11 +172,19 @@
    ["-l" "--log-level LEVEL" "Set log level."
     :default :info
     :parse-fn keyword
-    :validate #{:debug :info :warn}]])
+    :validate [#{:debug :info :warn} "Please use debug, info or warn."]]])
+
+(def --allow-origin
+  ["-o" "--allow-origin HOST" "Allow api use from sites served at this host."
+   :parse-fn #(re-seq schema/URI %)
+   :validate [(fn [[[_ scheme host port path]]]
+                (and scheme host (not path) true))
+              "Invalid host."]])
 
 (defn roll-up
   "Roll up relevant cli options into config (default: port and dry-run)."
   [schema {:keys [config] :as options} & keys]
+  (log/debug "Rolling up" schema "with" options "and" keys)
   (merge (load-config schema config) (select-keys options (conj keys :port :dry-run))))
 
 (defn validate-args
@@ -181,13 +194,13 @@
         summary (str desc \newline summary)]
     (cond errors {:exit [1 (apply str (interpose \newline (cons summary errors)))]}
           help {:exit [0 summary]}
-          :else (do (log/merge-config! {:log-level log-level
-                                        :middleware [pprint-middleware]})
+          :else (do (configure log-level)
                     {:options options :arguments arguments}))))
 
 (defn exit
   [exit-code exit-message]
-  ((if (zero? exit-code) log/info log/error)  exit-message)
+  (if (zero? exit-code) (log/info exit-message) ; ugh macros
+                        (log/error exit-message))
   (System/exit exit-code))
 
 (defn cli

@@ -1,5 +1,10 @@
 (ns foundation.client.config
-  (:require-macros [foundation.client.config]))
+  (:require-macros [foundation.client.config :refer [from-disk]]))
+
+(def default
+  "Default config here, not foundation.client.default because of circular dependency."
+  {:timeout 5000
+   :log-level :warn})
 
 (def debug? ^boolean goog.DEBUG)
 (def config
@@ -15,14 +20,17 @@
      Object.freeze(config);
    </script>
    "
-  (let [{:keys [dev] :as from-disk} (foundation.client.config/config)]
-    (merge (dissoc from-disk :dev)
+  (let [{:keys [dev] :as from-disk} (from-disk)]
+    (merge default
+           (dissoc from-disk :dev)
            (if debug? dev)
            (js->clj js/config :keywordize-keys true))))
 
-(defn api ; FIXME ***
+(defn api
   ([path] (api "http" path))
   ([scheme path]
-   (let [{:keys [tls host port root]} config]
+   (let [{:keys [tls host port root]
+          :or {tls true root "/"}} config]
      (str scheme (if tls "s") "://"
-          host ":" port root path))))
+          host (if port (str ":" port))
+          root path))))

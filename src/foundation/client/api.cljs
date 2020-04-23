@@ -7,7 +7,7 @@
             ["react-dom" :refer [render]]
             [helix.core :refer [$]]
             [foundation.client.config :as config])
-  (:require-macros [foundation.client.api]))
+  (:require-macros [foundation.client.api])) ; allows f/defevent when this ns aliased as f
 
 (defn store!
   ([schema] (store! schema []))
@@ -18,6 +18,7 @@
 (def subscribe state/subscribe)
 
 (defn start!
+  "Setup events, subscriptions, history and state, then render root component."
   [{:keys [root-component mount-point coeffects effects routes]
     :or {mount-point "app"}}]
   (events/setup! (merge default/coeffects coeffects) (merge default/effects effects))

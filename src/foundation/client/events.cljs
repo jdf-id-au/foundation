@@ -28,7 +28,8 @@
 
    Coeffects can't currently depend on each other.
 
-   Event-fn is called with (concatenated) coeffect return values, then args.
+   Event-fn is called with (concatenated) coeffect return values, then args. It returns either
+   one effect description, or a coll of them.
 
    Effect descriptions are vectors containing [kw & e-args]. The corresponding fn from the
    `fx` map atom is called with e-args. :no-op can be used for clarity if no effect is required."
@@ -37,8 +38,11 @@
   (let [cvalues (into {} (for [coeffect coeffects
                                :let [[cname & cargs] (if (coll? coeffect) coeffect [coeffect])
                                      [cfn & fargs] (retrieve-coeffect cname)]]
-                           [coeffect (apply cfn (concat fargs cargs))]))]
-    (doseq [[ename & eargs] (apply event-fn (concat (map #(get cvalues %) coeffects) args))
+                           [coeffect (apply cfn (concat fargs cargs))]))
+        effects (apply event-fn (concat (map #(get cvalues %) coeffects) args))
+        ; Wrap single effect description:
+        effects (cond-> effects (-> effects first keyword?) vector)]
+    (doseq [[ename & eargs] effects
             :when (not= ename :no-op)]
       (if-let [effect-fn (get @fx ename)]
         (do (log/info "Firing effect-fn" ename eargs)

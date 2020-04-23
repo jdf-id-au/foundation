@@ -4,12 +4,13 @@
             [ajax.core :as ajax]
             [foundation.message :as message :refer [->transit <-transit]]
             [foundation.client.config :as config]
-            [foundation.client.logging :as log])
+            [foundation.client.logging :as log]
+            [foundation.client.events]) ; think this is needed for defevent macro
   (:require-macros [foundation.client.api :refer [defevent]])
   (:import (goog.net WebSocket)
            (goog.net.WebSocket EventType))) ; != (goog.net EventType)
 
-; Websocket
+; Websocket - validated on both sides with clojure.spec
 
 (def conform (partial message/conform ::message/->client))
 (def validate (partial message/conform ::message/->server))
@@ -53,31 +54,48 @@
          :disconnect (.close -websocket))
        (catch :default e (log/error e))))
 
-; Ajax
+; Ajax - validated on server with prismatic/schema uuugh
 
-(defn request!
-  "Ajax request."
+(defn get!
+  "Ajax query"
   [endpoint handler failer]
   (ajax/GET (config/api endpoint)
-            {:timeout 5000
+            {:timeout (:timeout config/config)
+             :handler handler
+             :error-handler failer}))
+
+(defn post!
+  "Ajax command"
+  [endpoint message handler failer]
+  (ajax/PUT (config/api endpoint)
+            {:timeout (:timeout config/config)
              :handler handler
              :error-handler failer
              :format :transit}))
+
+(defn delete!
+  "Ajax command"
+  [endpoint handler failer]
+  (ajax/DELETE (config/api endpoint)
+               {:timeout (:timeout config/config)
+                :handler handler
+                :error-handler failer}))
 
 ; Auth
 
 (defevent auth-failer ; NB example only
   (fn [{:keys [status] :as response}]
     (log/info "Auth failure" response)
-    ; wrong credentials:
-    #_{:status 401 :status-text "Unauthorized." :failure :error
-       :response {:cause "No authorization provided"
-                  :data {:status 401}
-                  :headers {"www-authenticate" ["Basic realm=\"default\""]}}}
-    401 [[:db [{:app/state :<-> :auth :fail}]]]
-    ; server not running:
-    #_{:status 0 :status-text "Request failed." :failure :failed}
-    [[:db [{:app/state :<-> :auth :error}]]]))
+    (case status
+      ; wrong credentials:
+      #_{:status 401 :status-text "Unauthorized." :failure :error
+         :response {:cause "No authorization provided"
+                    :data {:status 401}
+                    :headers {"www-authenticate" ["Basic realm=\"default\""]}}}
+      401 [[:db [{:app/state :<-> :auth :fail}]]]
+      ; server not running:
+      #_{:status 0 :status-text "Request failed." :failure :failed}
+      [[:db [{:app/state :<-> :auth :error}]]])))
 
 (defevent auth-handler
   (fn [{:keys [username token]}]

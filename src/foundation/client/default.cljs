@@ -51,7 +51,8 @@
    :debug log/debug
    :navigate history/navigate!
    :back #(.back js/window.history)
-   :request connection/request!
+   :get connection/get!
+   :post connection/post!
    :auth connection/auth!
    :websocket connection/websocket!
    :send connection/send!})

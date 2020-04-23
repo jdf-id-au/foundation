@@ -1,1 +1,2 @@
-{:dev {:host :site-local}}
+{:dev {:host :site-local
+       :log-level :debug}}

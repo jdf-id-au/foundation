@@ -19,9 +19,10 @@
   ([] (load (-> "build-client.edn" slurp edn/read-string)))
   ([m] (let [config (cond-> (assoc m :version (version))
                       (some-> m :dev :host) (update-in [:dev :host] #(case % :site-local (host), %)))]
+         (println "Loading config" config)
          ; TODO validate config
          config)))
 
-(defmacro config
+(defmacro from-disk
   "Sneak config into client at compile time."
   [] `~(load))
