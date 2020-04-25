@@ -2,16 +2,15 @@
   "Common basic functionality for web applications."
   (:require [yada.yada :as yada]
             [yada.handler]
-            [schema.core :as s]
+            [clojure.spec.alpha :as s]
             [aleph.http :as http]
             [manifold.deferred :as d]
             [clojure.tools.cli :as cli]
             [clojure.edn :as edn]
             [clojure.data.json :as json]
             [byte-streams :as bs]
-            [clojure.java.io :as io]
             [taoensso.timbre :as log]
-            [foundation.schema :as schema]
+            [foundation.spec :as fs]
             [foundation.logging :refer [configure]]
             [foundation.message :as message :refer [format-stream ->transit <-transit]]
             [manifold.stream :as st]))
@@ -20,12 +19,12 @@
 
 (def config-filename "config.edn")
 (defn load-config
-  "Load config file (default `config.edn`) and validate against schema."
-  ([schema] (load-config schema config-filename))
-  ([schema filename]
+  "Load config file (default `config.edn`) and validate against spec."
+  ([spec] (load-config spec config-filename))
+  ([spec filename]
    (let [config (->> filename slurp edn/read-string)]
-     #_(log/debug "Intepreting config" config "against" schema)
-     (s/validate schema config))))
+     #_(log/debug "Intepreting config" config "against" spec)
+     (if (s/valid? spec config) config))))
 
 ; Recaptcha
 
@@ -48,7 +47,7 @@
 ; Websocket
 
 (def conform (partial message/conform ::message/->client))
-(def validate (partial message/conform ::message/->server))
+(def validate (partial message/validate ::message/->server))
 
 (def clients "Map of websocket-> nothing yet!" (atom {})) ; TODO ***
 
@@ -163,23 +162,20 @@
   [["-h" "--help" "Show this help text."]
    ["-c" "--config FILE" "Use specified config file."
     :default config-filename
-    :validate [#(.exists (io/as-file %)) "No such config file."]]
+    :validate [#(s/valid? ::fs/config-file %) "No such config file."]]
    ["-p" "--port PORT" "Use specified port."
     :default 8000
     :parse-fn #(Integer/parseInt %)
-    :validate [#(<= 8000 % 8999) "Please use port in range 8000-8999."]]
+    :validate [#(s/valid? ::fs/port %) "Please use port in range 8000-8999."]]
    ["-n" "--dry-run" "Run without doing anything important."]
    ["-l" "--log-level LEVEL" "Set log level."
     :default :info
     :parse-fn keyword
-    :validate [#{:debug :info :warn} "Please use debug, info or warn."]]])
+    :validate [#(s/valid? ::fs/log-level %) "Please use debug, info or warn."]]])
 
 (def --allow-origin
   ["-o" "--allow-origin HOST" "Allow api use from sites served at this (single) host."
-   :validate [(fn [host]
-                (let [[_ scheme host port path] (->> host (re-seq schema/URI) first)]
-                  (and scheme host (not path) true)))
-              "Invalid host."]])
+   :validate [#(s/valid? ::fs/allowed-origin %) "Invalid host."]])
 
 (defn roll-up
   "Roll up relevant cli options into config (default: port and dry-run)."

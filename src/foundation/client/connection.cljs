@@ -58,11 +58,12 @@
 
 (defn get!
   "Ajax query"
-  [endpoint handler failer]
+  [endpoint params handler failer]
   (ajax/GET (config/api endpoint)
             {:timeout (:timeout config/config)
              :handler handler ; TODO handler needs to validate received message
-             :error-handler failer}))
+             :error-handler failer
+             :params params}))
 
 (defn post!
   "Ajax command"
@@ -74,13 +75,13 @@
               :body message ; TODO message needs to be validated first
               :format :transit}))
 
-(defn delete!
-  "Ajax command"
-  [endpoint handler failer]
-  (ajax/DELETE (config/api endpoint)
-               {:timeout (:timeout config/config)
-                :handler handler
-                :error-handler failer}))
+#_(defn delete!
+    "Ajax command"
+    [endpoint handler failer]
+    (ajax/DELETE (config/api endpoint)
+                 {:timeout (:timeout config/config)
+                  :handler handler
+                  :error-handler failer}))
 
 ; Auth
 
