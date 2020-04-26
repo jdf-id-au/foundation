@@ -143,9 +143,12 @@
     msg))
 
 ; Cursive doesn't get docstrings right if (defmulti receive #?(:clj...)).
-#?(:clj  (defmulti receive ; TODO *** implement
-           "Called by `ws-receive` with [ws-send clients user roles conformed-msg]. See specs."
+#?(:clj  (defmulti receive ; TODO *** implement (ws only?)
+           "Called by `f.server/ws-receive` with [ws-send clients user conformed-msg].
+            See specs."
            (fn dispatch [clients user {:keys [type]}] type))
-   :cljs (defmulti receive ; TODO *** implement
-           "Called by `client.connection/receive`."
+   :cljs (defmulti receive ; TODO *** implement (ws and ajax)
+           "Called by the `f.client.connection/receive` defevent without coeffects.
+            If a particular receive method needs coeffects, it can call another defevent itself.
+            This inner defevent will return nil, and cause f.c.c/receive to do nothing further."
            :type))

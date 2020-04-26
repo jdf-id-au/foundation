@@ -1,4 +1,4 @@
-(ns foundation.client.connection ; FIXME *** adapt from Leavetracker
+(ns foundation.client.connection
   (:require [goog.events :refer [listen]]
             [goog.crypt.base64 :as b64]
             [ajax.core :as ajax]
@@ -10,18 +10,18 @@
   (:import (goog.net WebSocket)
            (goog.net.WebSocket EventType))) ; != (goog.net EventType)
 
-; Websocket - validated on both sides with clojure.spec
-
 (def conform (partial message/conform ::message/->client))
 (def validate (partial message/conform ::message/->server))
+
+(defevent receive message/receive)
+
+; Websocket - validated on both sides
 
 (defevent ws-open
   (fn [#_{:keys [user token]} open?]
     ;[[:send [:auth user token]]] ; TODO
     [[:db [{:app/state :<-> :online true}]]]
     [[:db [{:app/state :<-> :online false}]]]))
-
-(defevent receive message/receive)
 
 (defonce -websocket
   (let [ws (WebSocket.)]
@@ -54,34 +54,37 @@
          :disconnect (.close -websocket))
        (catch :default e (log/error e))))
 
-; Ajax ; TODO plug into similar validation system as ws (plus endpoint validation?)
+; Ajax - validated on both sides ; TODO endpoint and params validation?
+
+(defn ajax-handler [response] (-> response conform receive))
+(defn ajax-failer [response] (log/error "Ajax error" response)) ; TODO tell user, see auth-failer
 
 (defn get!
   "Ajax query"
-  [endpoint params handler failer]
-  (ajax/GET (config/api endpoint)
-            {:timeout (:timeout config/config)
-             :handler handler ; TODO handler needs to validate received message
-             :error-handler failer
-             :params params}))
+  ([endpoint] (get! endpoint {}))
+  ([endpoint params]
+   (ajax/GET (config/api endpoint)
+             {:timeout (:timeout config/config)
+              :handler ajax-handler
+              :error-handler ajax-failer
+              :params params
+              :response-format (ajax/transit-response-format
+                                 (assoc message/read-handlers :type :json))})))
 
 (defn post!
   "Ajax command"
-  [endpoint message handler failer]
+  [endpoint message]
   (ajax/POST (config/api endpoint)
              {:timeout (:timeout config/config)
-              :handler handler
-              :error-handler failer
-              :body message ; TODO message needs to be validated first
-              :format :transit}))
+              :handler ajax-handler
+              :error-handler ajax-failer
+              :body (validate message)
+              :format (ajax/transit-request-format
+                        (assoc message/write-handlers :type :json))
+              :response-format (ajax/transit-response-format
+                                 (assoc message/read-handlers :type :json))}))
 
-#_(defn delete!
-    "Ajax command"
-    [endpoint handler failer]
-    (ajax/DELETE (config/api endpoint)
-                 {:timeout (:timeout config/config)
-                  :handler handler
-                  :error-handler failer}))
+; TODO could do delete!
 
 ; Auth
 
@@ -101,8 +104,7 @@
 
 (defevent auth-handler
   (fn [{:keys [username token]}]
-    [[:db [{:app/state :<-> :username username
-                            :token token}]]]))
+    [[:db [{:app/state :<-> :username username :token token}]]]))
 
 (defn header
   "Create header for Basic authentication."

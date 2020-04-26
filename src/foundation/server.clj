@@ -46,14 +46,14 @@
 
 ; Websocket
 
-(def conform (partial message/conform ::message/->client))
-(def validate (partial message/validate ::message/->server))
+(def conform (partial message/conform ::message/->server))
+(def validate (partial message/validate ::message/->client))
 
 (def clients "Map of websocket-> nothing yet!" (atom {})) ; TODO ***
 
 (defn ws-send
   "Send `msg` to connected `user`s over their registered websocket/s.
-  See `common.message` specs."
+  See `f.common.message` specs."
   [user-msg-map]
   (doseq [[user msg] user-msg-map
           :let [[type & _ :as validated]
@@ -70,7 +70,7 @@
   "Acknowledge request with appropriate reply."
   [user msg]
   (ws-send (if-let [conformed (conform msg)]
-             (message/receive clients nil conformed)
+             (message/receive clients user conformed)
              {nil [:error :incoming "Invalid message sent to server." msg]})))
 
 (defn setup-websocket
@@ -97,6 +97,23 @@
                  {:status 400
                   :headers {"Content-type" "text/plain"}
                   :body "Expected a websocket request"}))))
+
+; Ajax
+
+(defn ajax-send
+  "Send `msg` reply. See `f.common.message` specs."
+  [msg]
+  (let [[type & _ :as validated]
+        (or (validate msg) [:error :outgoing "Problem generating server reply." msg])]
+    (if (= type :error) (log/warn "Telling user about server error" msg))
+    (->transit validated)))
+
+(defn ajax-receive
+  "Acknowledge request with appropriate reply."
+  [msg]
+  (ajax-send (if-let [conformed (conform msg)]
+               (message/receive nil nil conformed)
+               [:error :incoming "Invalid message sent to server." msg])))
 
 ; Auth
 

@@ -25,6 +25,7 @@
            (dissoc from-disk :dev)
            (if debug? dev)
            (js->clj js/config :keywordize-keys true))))
+           ; TODO could re-spec here
 
 (defn api
   ([path] (api "http" path))
