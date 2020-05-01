@@ -117,12 +117,12 @@
              (~'s/cat :type #{~type} ~@catspec))))
 
 (defmulti ->client first)
-(message :error ->client :code keyword? :message string? :context (s/? any?))
-(message :ready ->client)
+#_(message :error ->client :code keyword? :message string? :context (s/? any?))
+#_(message :ready ->client)
 (s/def ::->client (s/multi-spec ->client retag))
 
 (defmulti ->server first)
-(message :init ->server)
+#_(message :init ->server)
 (s/def ::->server (s/multi-spec ->server retag))
 
 (defn conform

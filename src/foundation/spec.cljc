@@ -7,6 +7,10 @@
                        [cljs.spec.gen.alpha :as gen]]))
   #?(:clj (:import (java.io File))))
 
+(defn unique
+  "Return function which checks whether items' values at key are unique."
+  [key] (fn [items] (or (empty? items) (apply distinct? (map key items)))))
+
 ; Suitable for use in schema or spec:
 (def URI #"^(https?)://([^/:]*):?(\d+)?(/.*)?")
 (def Email #"^\S+@\S+\.\S{2,}")

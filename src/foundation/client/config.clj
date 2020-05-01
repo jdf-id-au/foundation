@@ -30,5 +30,6 @@
            config))))
 
 (defmacro from-disk
-  "Sneak config into client at compile time."
+  "Sneak config into client at compile time.
+   Refreshing config can be difficult... need to modify this ns to trigger reload?"
   [] `~(load))

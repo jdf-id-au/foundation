@@ -58,6 +58,10 @@
 
 (defn ajax-handler [response] (-> response conform receive))
 (defn ajax-failer [response] (log/error "Ajax error" response)) ; TODO tell user, see auth-failer
+(def ajax-response "Add transit handlers for tick classes."
+  (ajax/transit-response-format (assoc message/read-handlers :type :json)))
+(def ajax-request "Add transit handlers for tick classes."
+  (ajax/transit-request-format (assoc message/write-handlers :type :json)))
 
 (defn get!
   "Ajax query"
@@ -68,8 +72,7 @@
               :handler ajax-handler
               :error-handler ajax-failer
               :params params
-              :response-format (ajax/transit-response-format
-                                 (assoc message/read-handlers :type :json))})))
+              :response-format ajax-response})))
 
 (defn post!
   "Ajax command"
@@ -79,10 +82,8 @@
               :handler ajax-handler
               :error-handler ajax-failer
               :body (validate message)
-              :format (ajax/transit-request-format
-                        (assoc message/write-handlers :type :json))
-              :response-format (ajax/transit-response-format
-                                 (assoc message/read-handlers :type :json))}))
+              :format ajax-request
+              :response-format ajax-response}))
 
 ; TODO could do delete!
 
@@ -102,9 +103,8 @@
       #_{:status 0 :status-text "Request failed." :failure :failed}
       [[:db [{:app/state :<-> :auth :error}]]])))
 
-(defevent auth-handler
-  (fn [{:keys [username token]}]
-    [[:db [{:app/state :<-> :username username :token token}]]]))
+(defmethod message/receive :auth [{:keys [username token]}]
+  [[:db [{:app/state :<-> :username username :token token}]]])
 
 (defn header
   "Create header for Basic authentication."
@@ -116,6 +116,6 @@
   (ajax/GET (config/api "login")
             {:headers {"Authorization" (header user password)}
              :timeout 5000
-             :handler handler
+             :handler ajax-handler
              :error-handler failer
              :format :transit}))
