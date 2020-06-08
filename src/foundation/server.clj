@@ -196,9 +196,9 @@
 
 (defn roll-up
   "Roll up relevant cli options into config (default: port and dry-run)."
-  [schema {:keys [config] :as options} & keys]
-  (log/debug "Rolling up" schema "with" options "and" keys)
-  (merge (load-config schema config) (select-keys options (conj keys :port :dry-run))))
+  [spec {:keys [config] :as options} & keys]
+  (log/debug "Rolling up" spec "with" options "and" keys)
+  (merge (load-config spec config) (select-keys options (conj keys :port :dry-run))))
 
 (defn validate-args
   [desc cli-options args]
