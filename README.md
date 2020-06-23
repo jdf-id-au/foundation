@@ -29,9 +29,9 @@ Ffff-framework for client-server web applications.
 
 ## Usage
 
-1. pull in via deps `jdf/foundation {:local/root "../foundation"}` for the time being
+1. pull in via deps `jdf/foundation {:local/root "../foundation"}` or `{:git/url "https://github.com/jdf-id-au/foundation.git" :sha ...}`
 1. `npm init`
-1. copy dependencies from `package.json`
+1. `clj -m cljs.main --install-deps`
 1. `npm i`
-1. copy `shadow-cljs.edn` and adjust
+1. copy `shadow-cljs.edn` and `build-client.edn` and adjust
 1. copy basic structure from `dev/user.cljs` into appropriate client namespace

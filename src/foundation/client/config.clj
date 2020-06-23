@@ -3,7 +3,8 @@
             [clojure.java.shell :refer [sh]]
             [clojure.spec.alpha :as s]
             [foundation.spec :as fs]
-            [taoensso.timbre :as log])
+            [taoensso.timbre :as log]
+            [clojure.java.io :as io])
   (:refer-clojure :exclude [load])
   (:import (java.net NetworkInterface InetAddress)))
 
@@ -19,7 +20,11 @@
            (.getHostAddress addr))))
 
 (defn load
-  ([] (load (-> "build-client.edn" slurp edn/read-string)))
+  ([] (let [f (-> "build-client.edn" io/file)]
+        (load (if (.exists f)
+                (-> f slurp edn/read-string)
+                (do (println "No build-client.edn found.") ; FIXME not visible?
+                    {})))))
   ([m] (let [config (cond-> (assoc m :version (version))
                       (some-> m :dev :host) (update-in [:dev :host]
                                                        #(case % :site-local (host), %)))]
