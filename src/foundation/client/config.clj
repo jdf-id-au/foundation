@@ -23,8 +23,7 @@
   ([] (let [f (-> "build-client.edn" io/file)]
         (load (if (.exists f)
                 (-> f slurp edn/read-string)
-                (do (println "No build-client.edn found.") ; FIXME not visible?
-                    {})))))
+                (println "No build-client.edn found.")))))
   ([m] (let [config (cond-> (assoc m :version (version))
                       (some-> m :dev :host) (update-in [:dev :host]
                                                        #(case % :site-local (host), %)))]

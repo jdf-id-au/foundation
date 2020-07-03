@@ -13,7 +13,8 @@
             [foundation.spec :as fs]
             [foundation.logging :refer [configure]]
             [foundation.message :as message :refer [format-stream ->transit <-transit]]
-            [manifold.stream :as st]))
+            [manifold.stream :as st]
+            [clojure.java.io :as io]))
 
 ; Config
 
@@ -22,9 +23,14 @@
   "Load config file (default `config.edn`) and validate against spec."
   ([spec] (load-config spec config-filename))
   ([spec filename]
-   (let [config (->> filename slurp edn/read-string)]
-     #_(log/debug "Intepreting config" config "against" spec)
-     (if (s/valid? spec config) config))))
+   (let [f (io/file filename)]
+     (if (.exists f)
+       (let [config (->> filename slurp edn/read-string)]
+         #_(log/debug "Intepreting config" config "against" spec)
+         (if (s/valid? spec config)
+           config
+           (println "Invalid config" filename ".")))
+       (println "No config" filename "found.")))))
 
 ; Recaptcha
 
