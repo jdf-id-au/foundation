@@ -30,6 +30,7 @@
 
 (s/def ::uri (s/and string? #(re-matches URI %))) ; better if conformed to something? or used existing parser?
 (s/def ::port (s/int-in 8000 9000))
+(s/def ::repl (s/int-in 9000 10000))
 (s/def ::email (s/and string? #(re-matches Email %)))
 (s/def ::named-email (s/and string? #(re-matches NamedEmail %)))
 

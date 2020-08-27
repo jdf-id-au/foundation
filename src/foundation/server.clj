@@ -11,7 +11,7 @@
             [byte-streams :as bs]
             [taoensso.timbre :as log]
             [foundation.spec :as fs]
-            [foundation.logging :refer [configure]]
+            [foundation.logging :as fl]
             [foundation.message :as message :refer [format-stream ->transit <-transit]]
             [manifold.stream :as st]
             [clojure.java.io :as io]))
@@ -190,6 +190,10 @@
     :default 8000
     :parse-fn #(Integer/parseInt %)
     :validate [#(s/valid? ::fs/port %) "Please use port in range 8000-8999."]]
+   ["-r" "--repl PORT" "Provide nREPL on specified port."
+    ; no default because don't provide nREPL by default
+    :parse-fn #(Integer/parseInt %)
+    :validate [#(s/valid? ::fs/repl %) "Please use port in range 9000-9999."]]
    ["-n" "--dry-run" "Run without doing anything important."]
    ["-l" "--log-level LEVEL" "Set log level."
     :default :info
@@ -202,9 +206,9 @@
 
 (defn roll-up
   "Roll up relevant cli options into config (default: port and dry-run)."
-  [spec {:keys [config] :as options} & keys]
-  (log/debug "Rolling up" spec "with" options "and" keys)
-  (merge (load-config spec config) (select-keys options (conj keys :port :dry-run))))
+  [spec {:keys [config] :as options} & additional-keys]
+  (log/debug "Rolling up" spec "with" options "and" additional-keys)
+  (merge (load-config spec config) (select-keys options (conj additional-keys :port :dry-run))))
 
 (defn validate-args
   [desc cli-options args]
@@ -213,7 +217,7 @@
         summary (str desc \newline summary)]
     (cond errors {:exit [1 (apply str (interpose \newline (cons summary errors)))]}
           help {:exit [0 summary]}
-          :else (do (configure log-level)
+          :else (do (fl/configure log-level)
                     {:options options :arguments arguments}))))
 
 (defn exit
