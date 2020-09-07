@@ -1,6 +1,6 @@
 {:paths ["src" "resources"]
  :deps {org.clojure/clojure {:mvn/version "1.10.1"}
-        tick {:mvn/version "0.4.25-alpha"}
+        tick/tick {:mvn/version "0.4.25-alpha"}
         ; {:git/url "https://github.com/juxt/tick.git" :sha ""}
 
         org.clojure/tools.cli {:mvn/version "1.0.194"}
@@ -23,12 +23,12 @@
 
         org.clojure/clojurescript {:mvn/version "1.10.764"}
         binaryage/oops {:mvn/version "0.7.0"}
-        datascript {:mvn/version "0.18.11"}
+        datascript/datascript {:mvn/version "0.18.11"}
         lilactown/helix {:mvn/version "0.0.12"}
         ; {:git/url "https://github.com/Lokeh/helix.git" :sha ""}
-        bidi {:mvn/version "2.1.6"}
+        bidi/bidi {:mvn/version "2.1.6"}
         ; brings in transit
-        cljs-ajax {:mvn/version "0.8.0"}}
+        cljs-ajax/cljs-ajax {:mvn/version "0.8.0"}}
 
  :aliases
  {:dev {:extra-paths ["dev" "test"]

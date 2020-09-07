@@ -191,7 +191,7 @@
     :parse-fn #(Integer/parseInt %)
     :validate [#(s/valid? ::fs/port %) "Please use port in range 8000-8999."]]
    ["-r" "--repl PORT" "Provide nREPL on specified port."
-    ; no default because don't provide nREPL by default
+    ; no default because don't provide nREPL by default; app to pull in nrepl dep
     :parse-fn #(Integer/parseInt %)
     :validate [#(s/valid? ::fs/repl %) "Please use port in range 9000-9999."]]
    ["-n" "--dry-run" "Run without doing anything important."]
