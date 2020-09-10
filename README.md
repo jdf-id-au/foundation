@@ -1,10 +1,12 @@
 # jdf/foundation
 
-Ffff-framework for client-server web applications.
+Ffff-framework for client-server web applications. Very alpha.
+
+Pursues [Jamstack](https://jamstack.org/) concept, with statically served client, api-oriented server, and common, `clojure.spec`-ed messages.
 
 ## Structure
 
-### Client
+### Client: `jdf/foundation-client`
 - [datascript](https://github.com/tonsky/datascript) store
 - pure event functions
 - coeffects and effects like [re-frame](https://github.com/day8/re-frame)
@@ -16,12 +18,12 @@ Ffff-framework for client-server web applications.
 - TODO ajax communication option
 - TODO websocket communication option
 
-### Common
+### Common: `jdf/foundation-common`
 - cross-platform time handling via [tick](https://github.com/juxt/tick) and some massaging/extra functions
 - TODO communication over [transit](https://github.com/cognitect/transit-format)
 - TODO validated ws messages via [spec](https://clojure.org/about/spec)
 
-### Server
+### Server: `jdf/foundation-server`
 - config system integrated with cli
 - [recaptcha](https://www.google.com/recaptcha/) support
 - [nonce](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src ) and [CSP](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP) support
@@ -29,9 +31,15 @@ Ffff-framework for client-server web applications.
 
 ## Usage
 
-1. pull in via deps `jdf/foundation {:local/root "../foundation"}` or `{:git/url "https://github.com/jdf-id-au/foundation.git" :sha ...}`
+Pull in each part via deps, e.g. `jdf/foundation-server` at
+* `{:local/root "../foundation/parts/server"}` or
+* `{:git/url "https://github.com/jdf-id-au/foundation.git" :sha ... :deps/root "parts/server"}`
+    
+This allows application's own parts (e.g. aliases) to pull only what they need.
+   
+### Client 
 1. `npm init`
-1. `clj -m cljs.main --install-deps`
+1. `clj -m cljs.main --install-deps` [installs upstream deps](https://clojurescript.org/reference/compiler-options#install-deps)
 1. `npm i`
 1. copy `shadow-cljs.edn` and `build-client.edn` and adjust
 1. copy basic structure from `dev/user.cljs` into appropriate client namespace

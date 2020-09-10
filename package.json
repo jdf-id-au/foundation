@@ -1,5 +1,5 @@
 {
-  "name": "foundation",
+  "name": "foundation-client",
   "version": "0.1.0",
   "description": "Common basic functionality for web applications: client",
   "main": "index.js",
@@ -8,11 +8,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://jdf-id-au@bitbucket.org/westmeadanaesthesia/foundation.git"
+    "url": "git+https://github.com/jdf-id-au/foundation.git"
   },
   "author": "Jeremy Field <foundation@jdf.id.au>",
   "license": "MIT",
-  "homepage": "https://bitbucket.org/westmeadanaesthesia/foundation#readme",
+  "homepage": "https://github.com/jdf-id-au/foundation",
   "dependencies": {
     "@cljs-oss/module-deps": "^1.1.1",
     "@js-joda/core": "^1.12.0",
