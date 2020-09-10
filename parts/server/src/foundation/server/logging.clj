@@ -1,4 +1,4 @@
-(ns foundation.logging
+(ns foundation.server.logging
   (:require [taoensso.encore :as encore]
             [taoensso.timbre :as log])
   (:import (java.util TimeZone)))

@@ -11,7 +11,7 @@ Ffff-framework for client-server web applications.
 - React hooks via [helix](https://github.com/Lokeh/helix)
 - Html5History URL fragment management
 - config (baked in at build time, plus via html file)
-- simple logging
+- simple logging to console via [devtools](https://github.com/binaryage/cljs-devtools)
 - put together with [shadow-cljs](https://github.com/thheller/shadow-cljs)
 - TODO ajax communication option
 - TODO websocket communication option

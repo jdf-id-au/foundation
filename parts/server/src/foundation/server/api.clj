@@ -1,4 +1,4 @@
-(ns foundation.server
+(ns foundation.server.api
   "Common basic functionality for web applications."
   (:require [yada.yada :as yada]
             [yada.handler]

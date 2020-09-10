@@ -1,0 +1,4 @@
+{:paths ["src" "resources"]
+ :deps {org.clojure/test.check {:mvn/version "0.10.0"}
+        tick/tick {:mvn/version "0.4.25-alpha"}
+        datascript/datascript {:mvn/version "0.18.11"}}}

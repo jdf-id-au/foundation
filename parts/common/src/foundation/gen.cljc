@@ -1,4 +1,5 @@
-(ns foundation.gen"Support generative testing. Get gen-related noise out of other namespaces."
+(ns foundation.gen
+  "Support generative testing. Get gen-related noise out of other namespaces."
   (:require #?@(:clj [[clojure.spec.alpha :as s]
                       [clojure.spec.gen.alpha :as gen]
                       [clojure.java.io :as io]]
