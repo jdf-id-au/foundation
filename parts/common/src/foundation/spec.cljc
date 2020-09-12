@@ -4,35 +4,22 @@
                        [clojure.spec.gen.alpha :as gen]
                        [clojure.java.io :as io]]
                 :cljs [[cljs.spec.alpha :as s]
-                       [cljs.spec.gen.alpha :as gen]]))
+                       [cljs.spec.gen.alpha :as gen]])
+            [comfort.spec :as cs])
   #?(:clj (:import (java.io File))))
-
-(defn unique
-  "Return function which checks whether items' values at key are unique."
-  [key] (fn [items] (or (empty? items) (apply distinct? (map key items)))))
-
-; Suitable for use in schema or spec:
-(def URI #"^(https?)://([^/:]*):?(\d+)?(/.*)?")
-(def Email #"^\S+@\S+\.\S{2,}")
-(def NamedEmail #"^[^<>]+ <\S+@\S+\.\S{2,}>")
-
-(s/def ::non-blank-string (s/and string? #(-> % clojure.string/blank? not)))
 
 #?(:clj (s/def ::config-file (s/and #(clojure.string/ends-with? ".edn" %)
                                     #(.exists (io/as-file %)))))
 
-(s/def ::allowed-origin (s/and string? (fn [host] (let [[_ scheme host port path]
-                                                        (->> host (re-seq URI) first)]
-                                                    (and scheme host (not path) true)))))
+(s/def ::allowed-origin (s/and string?
+                               #(let [{:keys [scheme host port path]} (cs/URI-parts %)]
+                                  (and scheme host (not path)))))
 (s/def ::log-level #{:debug :info :warn})
-(s/def ::recaptcha-key string?)
-(s/def ::recaptcha-secret string?)
+(s/def ::recaptcha-key ::cs/non-blank-string)
+(s/def ::recaptcha-secret ::cs/non-blank-string)
 
-(s/def ::uri (s/and string? #(re-matches URI %))) ; better if conformed to something? or used existing parser?
 (s/def ::port (s/int-in 8000 9000))
 (s/def ::repl (s/int-in 9000 10000))
-(s/def ::email (s/and string? #(re-matches Email %)))
-(s/def ::named-email (s/and string? #(re-matches NamedEmail %)))
 
 (s/def :api/tls boolean?)
 (s/def :api/host string?)
