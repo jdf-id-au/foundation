@@ -8,12 +8,13 @@
   (:refer-clojure :exclude [load])
   (:import (java.net NetworkInterface InetAddress)))
 
-(defn version []
+(defn version [] ; FIXME obviously doesn't work in production server
   (-> (sh "git" "describe" "--always") :out clojure.string/trim))
 
 (defn host
   "Current site-local host address, for development."
   []
+  #_(.getHostAddress (InetAddress/getLocalHost)) ; sometimes wrong/out of date?
   (first (for [ifc (enumeration-seq (NetworkInterface/getNetworkInterfaces))
                addr (enumeration-seq (.getInetAddresses ifc))
                :when (.isSiteLocalAddress addr)]
@@ -34,7 +35,8 @@
        (let [config (->> filename slurp edn/read-string process)]
          #_(log/debug "Intepreting config" config "against" spec)
          (if-let [explanation (s/explain-data spec config)]
-           (do (log/error "Invalid config" explanation)
+           (do (log/error "Invalid config" {:explanation explanation})
+               ; https://ask.clojure.org/index.php/8313/ex-str-can-be-misleading-when-handling-s-explain-data
                (throw (ex-info "Invalid config" explanation)))
            config))
        (println "No config" filename "found.")))))

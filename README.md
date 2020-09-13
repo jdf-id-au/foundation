@@ -2,9 +2,7 @@
 
 Ffff-framework for client-server web applications. Very alpha.
 
-Pursues [Jamstack](https://jamstack.org/) concept, with statically served client, api-oriented server, and common, `clojure.spec`-ed messages.
-
-Can add cross-platform time conveniences from [jdf/temper](https://github.com/jdf-id-au/temper).
+Pursues [Jamstack](https://jamstack.org/) concept, with statically served client (configurable via html and edn), api-oriented server, and common, `clojure.spec`-ed messages.
 
 ## Structure
 
@@ -21,7 +19,7 @@ Can add cross-platform time conveniences from [jdf/temper](https://github.com/jd
 - TODO websocket communication option
 
 ### Common: `jdf/foundation-common`
-- cross-platform massaging/extra functions
+- cross-platform massaging/extra functions incl time conveniences from [jdf/temper](https://github.com/jdf-id-au/temper)
 - TODO communication over [transit](https://github.com/cognitect/transit-format)
 - TODO validated ws messages via [spec](https://clojure.org/about/spec)
 
