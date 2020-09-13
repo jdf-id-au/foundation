@@ -1,45 +1,16 @@
-(ns foundation.message ; FIXME *** adapt from Leavetracker
+(ns foundation.message
   "Define messages to be sent between client and server."
   (:require [cognitect.transit :as transit]
-            [time-literals.read-write]
-            [foundation.gen :refer [retag]]
+            [comfort.gen :refer [retag]]
+            [temper.transit :as tt]
             #?@(:clj  [[taoensso.timbre :as log]
                        [clojure.spec.alpha :as s]
                        [manifold.stream :as ms]]
                 :cljs [[foundation.client.logging :as log]
                        [cljs.spec.alpha :as s]
-                       [com.cognitect.transit.types :as ty]
-                       ; FIXME unattractive copy-paste from time-literals.read-write
-                       [java.time :refer [Period
-                                          LocalDate
-                                          LocalDateTime
-                                          ZonedDateTime
-                                          OffsetTime
-                                          Instant
-                                          OffsetDateTime
-                                          ZoneId
-                                          DayOfWeek
-                                          LocalTime
-                                          Month
-                                          Duration
-                                          Year
-                                          YearMonth]]]))
+                       [com.cognitect.transit.types :as ty]]))
   #?(:cljs (:require-macros [foundation.message :refer [message]]))
-  #?(:clj (:import (java.io ByteArrayOutputStream ByteArrayInputStream)
-                   (java.time Period
-                              LocalDate
-                              LocalDateTime
-                              ZonedDateTime
-                              OffsetTime
-                              Instant
-                              OffsetDateTime
-                              ZoneId
-                              DayOfWeek
-                              LocalTime
-                              Month
-                              Duration
-                              Year
-                              YearMonth))))
+  #?(:clj (:import (java.io ByteArrayOutputStream ByteArrayInputStream))))
 
 ; Java streams
 
@@ -51,37 +22,13 @@
 
 ; Transit
 
-(def time-classes
-  {'period Period
-   'date LocalDate
-   'date-time LocalDateTime
-   'zoned-date-time ZonedDateTime
-   'offset-time OffsetTime
-   'instant Instant
-   'offset-date-time OffsetDateTime
-   'time LocalTime
-   'duration Duration
-   'year Year
-   'year-month YearMonth
-   'zone ZoneId
-   'day-of-week DayOfWeek
-   'month Month})
-
-(def write-handlers
-  {:handlers
-   (into {}
-         (for [[tick-class host-class] time-classes]
-           [host-class (transit/write-handler (constantly (name tick-class)) str)]))})
-
-(def read-handlers
-  {:handlers
-   (into {} (for [[sym fun] time-literals.read-write/tags]
-              [(name sym) (transit/read-handler fun)]))})   ; omit "time/" for brevity
-
 ; Let cljs.core/uuid? work on transit uuids.
 ; https://github.com/cognitect/transit-cljs/issues/18
 ; TODO remove when upstream fixed
 #?(:cljs (extend-type ty/UUID IUUID))
+
+(def read-handlers tt/read-handlers)
+(def write-handlers tt/write-handlers)
 
 (defn ->transit "Encode data structure to transit."
   [arg]
@@ -97,7 +44,7 @@
                       reader (transit/reader in :json read-handlers)]
                   (transit/read reader))
                 (catch Exception e
-                  (log/warn "Invalid message" json (.getMessage e))
+                  ;(log/warn "Invalid message" json (.getMessage e))
                   :invalid-message))
      :cljs (transit/read (transit/reader :json read-handlers) json)))
 ; TODO catch js errors

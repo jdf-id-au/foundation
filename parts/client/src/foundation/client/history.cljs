@@ -3,7 +3,7 @@
             [bidi.bidi :as bidi]
             [foundation.client.events :refer [navigate]]
             [foundation.client.logging :as log])
-  (:import (goog.history Html5History EventType)))
+  (:import (goog.history Html5History Event EventType)))
 
 ; Routing support
 
@@ -28,20 +28,20 @@
 
 (defn navigate!
   "Update browser address bar url #token. `route-params` values are stringified in `path-for`."
-  ([token] (.setToken @history token))
+  ([token] (.setToken ^Html5History @history token))
   ([handler route-params] (navigate! (path-for handler route-params))))
 
 (defn navigated
   "Callback for EventType.NAVIGATE ."
   [event]
-  (let [token (.-token event)
+  (let [token (.-token ^Event event)
         {:keys [handler route-params]} (bidi/match-route @-routes token)
         path-check (path-for handler route-params)]
     (if (= token path-check)
       (do (log/debug "Navigated" token handler route-params)
           (navigate handler route-params))
       (do (log/debug "Corrected token" token "to" path-check)
-          (.replaceToken @history path-check))))) ; redirect to canonical token
+          (.replaceToken ^Html5History @history path-check))))) ; redirect to canonical token
 
 (defn listen!
   "Listen for browser address bar url #token change."

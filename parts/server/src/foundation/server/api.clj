@@ -11,26 +11,13 @@
             [byte-streams :as bs]
             [taoensso.timbre :as log]
             [foundation.spec :as fs]
-            [foundation.logging :as fl]
+            [foundation.server.logging :as fl]
             [foundation.message :as message :refer [format-stream ->transit <-transit]]
             [manifold.stream :as st]
-            [clojure.java.io :as io]))
-
-; Config
-
-(def config-filename "config.edn")
-(defn load-config
-  "Load config file (default `config.edn`) and validate against spec."
-  ([spec] (load-config spec config-filename))
-  ([spec filename]
-   (let [f (io/file filename)]
-     (if (.exists f)
-       (let [config (->> filename slurp edn/read-string)]
-         #_(log/debug "Intepreting config" config "against" spec)
-         (if (s/valid? spec config)
-           config
-           (println "Invalid config" filename ".")))
-       (println "No config" filename "found.")))))
+            [clojure.java.io :as io]
+            [buddy.core.nonce :as nonce]
+            [foundation.config :as config])
+  (:import (org.bouncycastle.util.encoders Hex)))
 
 ; Recaptcha
 
@@ -147,7 +134,7 @@
 ; Server
 
 (defn add-nonce [ctx]
-  (assoc ctx :nonce (rand-int 1e6)))
+  (assoc ctx :nonce (-> 8 nonce/random-bytes Hex/toHexString)))
 
 (defn add-csp
   "Work around inability to pass function in :content-security-policy."
@@ -180,6 +167,8 @@
 
 ; Administration
 
+(def config-filename "config.edn")
+
 (def cli-options
   "Basic set of options"
   [["-h" "--help" "Show this help text."]
@@ -210,7 +199,7 @@
   "Roll up relevant cli options into config (default: port and dry-run)."
   [spec {:keys [config] :as options} & additional-keys]
   (log/debug "Rolling up" spec "with" options "and" additional-keys)
-  (merge (load-config spec config) (select-keys options (conj additional-keys :port :dry-run))))
+  (merge (config/load spec config) (select-keys options (conj additional-keys :port :dry-run))))
 
 (defn validate-args
   [desc cli-options args]

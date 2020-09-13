@@ -1,5 +1,5 @@
 (ns foundation.client.config
-  (:require-macros [foundation.client.config :refer [from-disk]]))
+  (:require-macros [foundation.config :refer [from-disk]]))
 
 (def default
   "Default config here, not foundation.client.default because of circular dependency."

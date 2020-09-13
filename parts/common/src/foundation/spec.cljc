@@ -28,4 +28,4 @@
 (s/def ::client-config (s/keys :opt-un [:client/dev ; contents promoted to root in goog.DEBUG mode
                                         :api/tls :api/host :api/port ::log-level]))
 
-#_(s/def ::config (s/keys :req-un [::recaptcha-key ::recaptcha-secret]))
+(s/def ::config (s/keys :opt-un [::recaptcha-key ::recaptcha-secret]))

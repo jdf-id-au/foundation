@@ -1,4 +1,4 @@
-(ns foundation.client.config
+(ns foundation.config
   (:require [clojure.edn :as edn]
             [clojure.java.shell :refer [sh]]
             [clojure.spec.alpha :as s]
@@ -19,21 +19,27 @@
                :when (.isSiteLocalAddress addr)]
            (.getHostAddress addr))))
 
+(defn configure-client
+  "Inject version and interpret host"
+  [m]
+  (cond-> (assoc m :version (version))
+    (some-> m :dev :host) (update-in [:dev :host] #(case % :site-local (host), %))))
+
 (defn load
-  ([] (let [f (-> "build-client.edn" io/file)]
-        (load (if (.exists f)
-                (-> f slurp edn/read-string)
-                (println "No build-client.edn found.")))))
-  ([m] (let [config (cond-> (assoc m :version (version))
-                      (some-> m :dev :host) (update-in [:dev :host]
-                                                       #(case % :site-local (host), %)))]
-         (println "Loading config" config)
-         (if-let [explanation (s/explain-data ::fs/client-config config)]
+  "Load config file and validate against spec."
+  ([spec filename] (load spec filename identity))
+  ([spec filename process]
+   (let [f (io/file filename)]
+     (if (.exists f)
+       (let [config (->> filename slurp edn/read-string process)]
+         #_(log/debug "Intepreting config" config "against" spec)
+         (if-let [explanation (s/explain-data spec config)]
            (do (log/error "Invalid config" explanation)
                (throw (ex-info "Invalid config" explanation)))
-           config))))
+           config))
+       (println "No config" filename "found.")))))
 
 (defmacro from-disk
   "Sneak config into client at compile time.
    Refreshing config can be difficult... need to modify this ns to trigger reload?"
-  [] `~(load))
+  [] `~(load ::fs/client-config "build-client.edn" configure-client))

@@ -1,10 +1,12 @@
 (ns user
-  "Dev proof of concept, not a substitute for formal testing."
+  "Dev proof of concept, not a substitute for formal testing.
+   Presented at http://localhost:8888/index.html (see shadow-cljs.edn)"
   (:require [helix.core :refer [defnc $ <>]]
             ["react-dom" :refer [render]]
             [foundation.client.api :as f]
             [foundation.client.config :as config]
-            [foundation.time :as time]
+            [tick.alpha.api :as t]
+            [temper.api :as tm]
             [foundation.client.logging :as log]))
 
 (f/store! {} [{:name "John"}
@@ -26,13 +28,13 @@
         ($ :ul
           (for [s eg-sub]
             ($ :li {:key s} s)))
-        ($ :div (time/format "hh:mm dd MMM yyyy" (time/now)))
+        ($ :div (tm/format "HH:mm dd MMM yyyy" (tm/now)))
         ($ :button {:on-click #(click "argument")} "click me"))))
 
 (defn ^:dev/after-load start-up []
   (f/start! {:root-component app
              :coeffects {:co [str "coeffect"]
-                         :now [time/now]}
+                         :now [tm/now]}
              :effects {:clicked println}}))
 
 (defn init []

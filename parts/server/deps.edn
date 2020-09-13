@@ -12,8 +12,12 @@
 
         ; yada uses clojure.xml which causes reflection warning on java11
         ; https://github.com/juxt/yada/issues/305#issuecomment-615994934
-        yada/lean {:mvn/version "1.2.15"}
+        ; Includes buddy
+        ; https://github.com/funcool/buddy-sign/blob/f906c4c9f470e3224819bd7016fe7bba09c1305b/doc/content.adoc
+        ; Would be nice to slim down a bit but simple :exclusions don't work
+        yada/yada {:mvn/version "1.2.15"}
         aleph/aleph {:mvn/version "0.4.6"}
+        buddy/buddy-hashers {:mvn/version "1.4.0"}
 
         ; aleph causes error on java11, work around until yada deps updated
         ; https://github.com/juxt/edge/issues/26#issuecomment-394953143
