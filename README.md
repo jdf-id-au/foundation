@@ -19,7 +19,7 @@ Pursues [Jamstack](https://jamstack.org/) concept, with statically served client
 - TODO websocket communication option
 
 ### Common: `jdf/foundation-common`
-- cross-platform massaging/extra functions incl time conveniences from [jdf/temper](https://github.com/jdf-id-au/temper)
+- cross-platform messaging/extra functions incl time conveniences from [jdf/temper](https://github.com/jdf-id-au/temper)
 - TODO communication over [transit](https://github.com/cognitect/transit-format)
 - TODO validated ws messages via [spec](https://clojure.org/about/spec)
 

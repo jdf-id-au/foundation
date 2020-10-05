@@ -129,7 +129,13 @@
              ; "default" is realm
              ; value seems to be response from verify:
              ; {:user "username", :roles #{:role}}
-             (->transit {:user user :token (auth/write-token auth-map)})))}}}))
+             (->transit {:user user :token (auth/write-token auth-map)})))}
+        :access-control
+        {:scheme "Basic"
+         :verify verify-fn
+         :authorization {:methods {:get ...}}
+         :allow-origin ...
+         :allow-headers "Authorization"}}}))
 
 ; Server
 
