@@ -6,7 +6,7 @@
         jdf/foundation-common {:local/root "../common"}
 
         com.taoensso/encore {:mvn/version "2.119.0"}
-        com.taoensso/timbre {:mvn/version "4.10.0"}
+        com.taoensso/timbre {:mvn/version "5.1.0"}
         com.fzakaria/slf4j-timbre {:mvn/version "0.3.19"} ; redirect dependencies' slf4j requirements
         org.slf4j/slf4j-api {:mvn/version "1.7.30"}
 

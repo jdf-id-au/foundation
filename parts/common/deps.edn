@@ -1,5 +1,5 @@
 {:paths ["src"]
- :deps {datascript/datascript {:mvn/version "1.0.0"}
+ :deps {datascript/datascript {:mvn/version "1.0.1"}
         ; :local/url "../../../thing" not working
         jdf/comfort {:git/url "https://github.com/jdf-id-au/comfort"
                      :sha "eac62a61bf6a83c86c816ecdc3ec9a15e0c02b0d"}
