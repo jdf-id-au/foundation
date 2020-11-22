@@ -58,8 +58,8 @@
   "Clear history listener(s). Dev convenience only."
   []
   (if @history
-    (let [capturing? #(count (.getListeners @history EventType.NAVIGATE %))]
+    (let [capturing? #(count (.getListeners ^Html5History @history EventType.NAVIGATE %))]
       (log/info "Removing" (capturing? true) "capturing and"
                            (capturing? false) "non-capturing listeners.")
-      (.removeAllListeners @history))
+      (.removeAllListeners ^Html5History @history))
     (log/warn "No history object!")))

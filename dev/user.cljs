@@ -9,6 +9,8 @@
             [temper.api :as tm]
             [foundation.client.logging :as log]))
 
+; Sets up datascript, so call even if nothing to store yet.
+#_ (f/store! {} {})
 (f/store! {} [{:name "John"}
               {:name "Dev"}])
 
