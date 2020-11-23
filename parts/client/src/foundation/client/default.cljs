@@ -7,7 +7,7 @@
 (def routes
   "Associate navigation tokens (being the part of URL after #) with routes."
   ["" [["/"
-        ; This map is accessed by routed-views below:
+        ; This map is accessed by history/routed-views:
         {"" :home
          "not-found" :not-found}] ; needed to make catchall routeable
        ["" :home]
