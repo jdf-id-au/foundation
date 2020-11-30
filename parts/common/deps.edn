@@ -2,6 +2,6 @@
  :deps {datascript/datascript {:mvn/version "1.0.1"}
         ; :local/url "../../../thing" not working
         jdf/comfort {:git/url "https://github.com/jdf-id-au/comfort"
-                     :sha "eac62a61bf6a83c86c816ecdc3ec9a15e0c02b0d"}
+                     :sha "b2956516227b430cce9aea4036c77eb3200fcc07"}
         jdf/temper {:git/url "https://github.com/jdf-id-au/temper.git"
-                    :sha "b9312ba59957820ca5d1968320cf937eaa6b2db6"}}}
+                    :sha "11013a4565a5241c878c96d927940cff2e047238"}}}
