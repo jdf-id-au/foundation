@@ -1,5 +1,5 @@
-(ns foundation.server.logging
-  (:require [taoensso.encore :as encore]
+(ns foundation.common.logging
+  (:require [taoensso.encore :as encore] ; clj deps from parts/server
             [taoensso.timbre :as log])
   (:import (java.util TimeZone)))
 

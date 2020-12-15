@@ -6,6 +6,6 @@
         binaryage/oops {:mvn/version "0.7.0"}
         lilactown/helix {:mvn/version "0.0.13"}
         ; {:git/url "https://github.com/Lokeh/helix.git" :sha ""}
-        bidi/bidi {:mvn/version "2.1.6"}
+        bidi/bidi {:mvn/version "2.1.6"}}}
         ; brings in transit
-        cljs-ajax/cljs-ajax {:mvn/version "0.8.0"}}}
+        ;cljs-ajax/cljs-ajax {:mvn/version "0.8.0"}}}

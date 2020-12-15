@@ -1,7 +1,7 @@
 (ns foundation.client.connection
   (:require [goog.events :refer [listen]]
             [goog.crypt.base64 :as b64]
-            [ajax.core :as ajax]
+            ;[ajax.core :as ajax]
             [foundation.message :as message :refer [->transit <-transit]]
             [foundation.client.config :as config]
             [foundation.client.logging :as log]
@@ -56,66 +56,66 @@
 
 ; Ajax - validated on both sides ; TODO endpoint and params validation?
 
-(defn ajax-handler [response] (-> response conform receive))
-(defn ajax-failer [response] (log/error "Ajax error" response)) ; TODO tell user, see auth-failer
-(def ajax-response "Add transit handlers for tick classes."
-  (ajax/transit-response-format (assoc message/read-handlers :type :json)))
-(def ajax-request "Add transit handlers for tick classes."
-  (ajax/transit-request-format (assoc message/write-handlers :type :json)))
-
-(defn get!
-  "Ajax query"
-  ([endpoint] (get! endpoint {}))
-  ([endpoint params]
-   (ajax/GET (config/api endpoint)
-             {:timeout (:timeout config/config)
-              :handler ajax-handler
-              :error-handler ajax-failer
-              :params params
-              :response-format ajax-response})))
-
-(defn post!
-  "Ajax command"
-  [endpoint message]
-  (ajax/POST (config/api endpoint)
-             {:timeout (:timeout config/config)
-              :handler ajax-handler
-              :error-handler ajax-failer
-              :body (validate message)
-              :format ajax-request
-              :response-format ajax-response}))
+;(defn ajax-handler [response] (-> response conform receive))
+;(defn ajax-failer [response] (log/error "Ajax error" response)) ; TODO tell user, see auth-failer
+;(def ajax-response "Add transit handlers for tick classes."
+;  (ajax/transit-response-format (assoc message/read-handlers :type :json)))
+;(def ajax-request "Add transit handlers for tick classes."
+;  (ajax/transit-request-format (assoc message/write-handlers :type :json)))
+;
+;(defn get!
+;  "Ajax query"
+;  ([endpoint] (get! endpoint {}))
+;  ([endpoint params]
+;   (ajax/GET (config/api endpoint)
+;             {:timeout (:timeout config/config)
+;              :handler ajax-handler
+;              :error-handler ajax-failer
+;              :params params
+;              :response-format ajax-response})))
+;
+;(defn post!
+;  "Ajax command"
+;  [endpoint message]
+;  (ajax/POST (config/api endpoint)
+;             {:timeout (:timeout config/config)
+;              :handler ajax-handler
+;              :error-handler ajax-failer
+;              :body (validate message)
+;              :format ajax-request
+;              :response-format ajax-response}))
 
 ; TODO could do delete!
 
 ; Auth
 
-(defevent auth-failer ; NB example only
-  (fn [{:keys [status] :as response}]
-    (log/info "Auth failure" response)
-    (case status
-      ; wrong credentials:
-      #_{:status 401 :status-text "Unauthorized." :failure :error
-         :response {:cause "No authorization provided"
-                    :data {:status 401}
-                    :headers {"www-authenticate" ["Basic realm=\"default\""]}}}
-      401 [[:db [{:app/state :<-> :auth :fail}]]]
-      ; server not running:
-      #_{:status 0 :status-text "Request failed." :failure :failed}
-      [[:db [{:app/state :<-> :auth :error}]]])))
-
-(defmethod message/receive :auth [{:keys [username token]}]
-  [[:db [{:app/state :<-> :username username :token token}]]])
-
-(defn header
-  "Create header for Basic authentication."
-  [username password]
-  (str "Basic " (b64/encodeString (str username ":" password))))
-
-(defn auth!
-  [user password handler failer]
-  (ajax/GET (config/api "login")
-            {:headers {"Authorization" (header user password)}
-             :timeout 5000
-             :handler ajax-handler
-             :error-handler failer
-             :format :transit}))
+;(defevent auth-failer ; NB example only
+;  (fn [{:keys [status] :as response}]
+;    (log/info "Auth failure" response)
+;    (case status
+;      ; wrong credentials:
+;      #_{:status 401 :status-text "Unauthorized." :failure :error
+;         :response {:cause "No authorization provided"
+;                    :data {:status 401}
+;                    :headers {"www-authenticate" ["Basic realm=\"default\""]}}}
+;      401 [[:db [{:app/state :<-> :auth :fail}]]]
+;      ; server not running:
+;      #_{:status 0 :status-text "Request failed." :failure :failed}
+;      [[:db [{:app/state :<-> :auth :error}]]])))
+;
+;(defmethod message/receive :auth [{:keys [username token]}]
+;  [[:db [{:app/state :<-> :username username :token token}]]])
+;
+;(defn header
+;  "Create header for Basic authentication."
+;  [username password]
+;  (str "Basic " (b64/encodeString (str username ":" password))))
+;
+;(defn auth!
+;  [user password handler failer]
+;  (ajax/GET (config/api "login")
+;            {:headers {"Authorization" (header user password)}
+;             :timeout 5000
+;             :handler ajax-handler
+;             :error-handler failer
+;             :format :transit}))

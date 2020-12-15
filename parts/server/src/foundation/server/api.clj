@@ -1,175 +1,77 @@
 (ns foundation.server.api
   "Common basic functionality for web applications."
-  (:require [yada.yada :as yada]
-            [yada.handler]
-            [clojure.spec.alpha :as s]
-            [aleph.http :as http]
-            [manifold.deferred :as d]
+  (:require [clojure.spec.alpha :as s]
             [clojure.tools.cli :as cli]
             [clojure.edn :as edn]
             [clojure.data.json :as json]
-            [byte-streams :as bs]
             [taoensso.timbre :as log]
             [foundation.spec :as fs]
-            [foundation.server.logging :as fl]
-            [foundation.message :as message :refer [format-stream ->transit <-transit]]
-            [manifold.stream :as st]
+            [foundation.common.logging :as fl]
+            [foundation.message :as message]
             [clojure.java.io :as io]
-            [buddy.core.nonce :as nonce]
-            [foundation.config :as config])
-  (:import (org.bouncycastle.util.encoders Hex)))
+            [sok.api :as sok]
+            [clojure.core.async :as async :refer [chan go go-loop >! <! >!! <!!]]
+            [foundation.config :as config]))
 
-; Recaptcha
 
-(defn recaptcha!
-  "Verify recaptcha synchronously."
-  [secret response]
-  @(-> (http/post "https://www.google.com/recaptcha/api/siteverify"
-                  {:form-params {:secret secret :response response}})
-       (d/chain :body bs/to-string #(json/read-str % :key-fn keyword))
-       (d/catch (fn [e] (log/warn "Error verifying reCAPTCHA"
-                                  (.getClass e) (.getMessage e))))))
-
-(defn human?
-  [{:keys [parameters] :as ctx}
-   {:keys [recaptcha-secret] :as config}]
-  (let [{:keys [g-recaptcha-response]} (:form parameters)
-        {:keys [success score]} (recaptcha! recaptcha-secret g-recaptcha-response)]
-    (and success (< 0.5 score))))
-
-; Websocket
 
 (def conform (partial message/conform ::message/->server))
 (def validate (partial message/validate ::message/->client))
 
-(def clients "Map of websocket-> nothing yet!" (atom {})) ; TODO ***
+;(def clients "Map of websocket-> nothing yet!" (atom {})) ; TODO ***
+;
+;(defn ws-send
+;  "Send `msg` to connected `user`s over their registered websocket/s.
+;  See `f.common.message` specs."
+;  [user-msg-map]
+;  (doseq [[user msg] user-msg-map
+;          :let [[type & _ :as validated]
+;                (or (validate msg) [:error :outgoing "Problem generating server reply." msg])
+;                [ws u] @clients]
+;          :when (= u user)]
+;    (if (= type :error) (log/warn "Telling" user "about server error" msg))
+;    (-> (st/put! ws validated)
+;        (d/chain #(if-not % (log/info "Failed to send" msg "to" user)
+;                            #_ (log/debug "Sent" msg "to" user)))
+;        (d/catch #(log/info "Error sending" msg "to" user %)))))
 
-(defn ws-send
-  "Send `msg` to connected `user`s over their registered websocket/s.
-  See `f.common.message` specs."
-  [user-msg-map]
-  (doseq [[user msg] user-msg-map
-          :let [[type & _ :as validated]
-                (or (validate msg) [:error :outgoing "Problem generating server reply." msg])
-                [ws u] @clients]
-          :when (= u user)]
-    (if (= type :error) (log/warn "Telling" user "about server error" msg))
-    (-> (st/put! ws validated)
-        (d/chain #(if-not % (log/info "Failed to send" msg "to" user)
-                            #_ (log/debug "Sent" msg "to" user)))
-        (d/catch #(log/info "Error sending" msg "to" user %)))))
 
-(defn ws-receive
-  "Acknowledge request with appropriate reply."
-  [user msg]
-  (ws-send (if-let [conformed (conform msg)]
-             (message/receive clients user conformed)
-             {nil [:error :incoming "Invalid message sent to server." msg]})))
 
-(defn setup-websocket
-  "Maintain registry of clients" ; TODO *** and all the rest! see Leavetracker
-  ; TODO need to have some idea who's who; could do by ip?
-  ; better not to open ws for allcomers, should auth somehow first?
-  [ws]
-  (let [formatted-ws (format-stream ws ->transit <-transit)
-        ws-hash (hash formatted-ws)]
-    (log/debug "Preparing websocket" ws-hash)
-    (st/on-closed formatted-ws (fn [] (log/debug "Disconnected" ws-hash)
-                                      (swap! clients dissoc formatted-ws)))
-    (swap! clients assoc formatted-ws :nothing-useful-yet)
-    (st/put! formatted-ws [:ready])
-    (log/debug "Web socket ready" ws-hash)
-    (st/consume (partial ws-receive) formatted-ws)))
 
-(defn websocket-handler [req]
-  ; FIXME need to harden this public exposed endpoint
-  (-> (http/websocket-connection req)
-      (d/chain setup-websocket)
-      (d/catch (fn [& args]
-                 (log/info "Websocket exception" args)
-                 {:status 400
-                  :headers {"Content-type" "text/plain"}
-                  :body "Expected a websocket request"}))))
 
-; Ajax
+;(defn ws-receive
+;  "Acknowledge request with appropriate reply."
+;  [user msg]
+;  (ws-send (if-let [conformed (conform msg)]
+;             (message/receive clients user conformed)
+;             {nil [:error :incoming "Invalid message sent to server." msg]})))
 
-(defn ajax-send
-  "Send `msg` reply. See `f.common.message` specs."
-  [msg]
-  (let [[type & _ :as validated]
-        (or (validate msg) [:error :outgoing "Problem generating server reply." msg])]
-    (if (= type :error) (log/warn "Telling user about server error" msg))
-    (->transit validated)))
+;(defn setup-websocket
+;  "Maintain registry of clients" ; TODO *** and all the rest! see Leavetracker
+;  ; TODO need to have some idea who's who; could do by ip?
+;  ; better not to open ws for allcomers, should auth somehow first?
+;  [ws]
+;  (let [formatted-ws (format-stream ws ->transit <-transit)
+;        ws-hash (hash formatted-ws)]
+;    (log/debug "Preparing websocket" ws-hash)
+;    (st/on-closed formatted-ws (fn [] (log/debug "Disconnected" ws-hash)
+;                                      (swap! clients dissoc formatted-ws)))
+;    (swap! clients assoc formatted-ws :nothing-useful-yet)
+;    (st/put! formatted-ws [:ready])
+;    (log/debug "Web socket ready" ws-hash)
+;    (st/consume (partial ws-receive) formatted-ws)))
 
-(defn ajax-receive
-  "Acknowledge request with appropriate reply."
-  [msg]
-  (ajax-send (if-let [conformed (conform msg)]
-               (message/receive nil nil conformed)
-               [:error :incoming "Invalid message sent to server." msg])))
+;(defn websocket-handler [req]
+;  ; FIXME need to harden this public exposed endpoint
+;  (-> (http/websocket-connection req)
+;      (d/chain setup-websocket)
+;      (d/catch (fn [& args]
+;                 (log/info "Websocket exception" args)
+;                 {:status 400
+;                  :headers {"Content-type" "text/plain"}
+;                  :body "Expected a websocket request"}))))
 
-; Auth
 
-(def failure
-  {:produces "application/transit+json"
-   :response (fn [ctx] (->transit (-> ctx :error Throwable->map
-                                      (select-keys [:cause :data]))))})
-
-#_(def login
-    (yada/resource
-      {:id :login
-       :responses (zipmap [401 403 500] (repeat failure))
-       :methods
-       {:get
-        {:produces "application/transit+json"
-         :response
-         (fn [ctx]
-           (let [{:keys [user] :as auth-map}
-                 (get-in ctx [:authentication "default"])]
-             ; "default" is realm
-             ; value seems to be response from verify:
-             ; {:user "username", :roles #{:role}}
-             (->transit {:user user :token (auth/write-token auth-map)})))}
-        :access-control
-        {:scheme "Basic"
-         :verify verify-fn
-         :authorization {:methods {:get ...}}
-         :allow-origin ...
-         :allow-headers "Authorization"}}}))
-
-; Server
-
-(defn add-nonce [ctx]
-  (assoc ctx :nonce (-> 8 nonce/random-bytes Hex/toHexString)))
-
-(defn add-csp
-  "Work around inability to pass function in :content-security-policy."
-  [{:keys [nonce] :as ctx}]
-  (assoc-in ctx [:response :headers "content-security-policy"]
-            ; this is such a mess, possibly "worse" on firefox
-            ; https://github.com/google/recaptcha/issues/107
-            (str "script-src 'unsafe-eval' 'nonce-" nonce "';")))
-
-#_(def example-routes
-    ["/" {"" (server/resource
-               {:methods {; TODO deal with GET queries :parameters {:query :spec?}...
-                          :get {:produces "text/html"
-                                :response :response?}
-                          :post {:consumes "application/x-www-form-urlencoded"
-                                 :parameters {:form :schema?}
-                                 :produces "text/html"
-                                 :response :response?}}
-                :responses {400 {:produces "text/html"
-                                 :response :response?}}})}])
-
-(defn resource
-  "Make yada resource with nonce and Content Security Policy."
-  [resource-map]
-  (-> (yada/resource (assoc resource-map
-                       ; not sure why this needs to be added explicitly
-                       :interceptor-chain yada/default-interceptor-chain))
-      (yada.handler/prepend-interceptor add-nonce)
-      (yada.handler/append-interceptor yada.security/security-headers add-csp)))
 
 ; Administration
 
@@ -197,9 +99,9 @@
    :parse-fn #(Integer/parseInt %)
    :validate [#(s/valid? ::fs/repl %) "Please use port in range 9000-9999."]])
 
-(def --allow-origin
-  ["-o" "--allow-origin HOST" "Allow api use from sites served at this (single) host."
-   :validate [#(s/valid? ::fs/allowed-origin %) "Invalid host."]])
+;(def --allow-origin
+;  ["-o" "--allow-origin HOST" "Allow api use from sites served at this (single) host."
+;   :validate [#(s/valid? ::fs/allowed-origin %) "Invalid host."]])
 
 (defn roll-up
   "Roll up relevant cli options into config (default: port and dry-run)."

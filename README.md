@@ -2,7 +2,7 @@
 
 Ffff-framework for client-server web applications. Very alpha.
 
-Pursues [Jamstack](https://jamstack.org/) concept, with statically served client (configurable via html and edn), api-oriented server, and common, `clojure.spec`-ed messages.
+Pursues [Jamstack](https://jamstack.org/) concept, with statically served client (configurable via html and edn), websocket-only server, and common, `clojure.spec`-ed messages.
 
 ## Structure
 
@@ -15,8 +15,7 @@ Pursues [Jamstack](https://jamstack.org/) concept, with statically served client
 - config (baked in at build time, plus via html file)
 - simple logging to console via [devtools](https://github.com/binaryage/cljs-devtools)
 - put together with [shadow-cljs](https://github.com/thheller/shadow-cljs)
-- TODO ajax communication option
-- TODO websocket communication option
+- TODO websocket communication
 
 ### Common: `jdf/foundation-common`
 - cross-platform messaging/extra functions incl time conveniences from [jdf/temper](https://github.com/jdf-id-au/temper)
@@ -25,9 +24,10 @@ Pursues [Jamstack](https://jamstack.org/) concept, with statically served client
 
 ### Server: `jdf/foundation-server`
 - config system integrated with cli
-- [recaptcha](https://www.google.com/recaptcha/) support
-- [nonce](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src ) and [CSP](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP) support
 - TODO websocket communication option
+
+[comment]: <> (- [recaptcha]&#40;https://www.google.com/recaptcha/&#41; support)
+[comment]: <> (- [nonce]&#40;https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src &#41; and [CSP]&#40;https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP&#41; support)
 
 ## Usage
 

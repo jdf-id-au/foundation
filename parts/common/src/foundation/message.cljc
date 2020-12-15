@@ -4,21 +4,12 @@
             [comfort.gen :refer [retag]]
             [temper.transit :as tt]
             #?@(:clj  [[taoensso.timbre :as log]
-                       [clojure.spec.alpha :as s]
-                       [manifold.stream :as ms]]
+                       [clojure.spec.alpha :as s]]
                 :cljs [[foundation.client.logging :as log]
                        [cljs.spec.alpha :as s]
                        [com.cognitect.transit.types :as ty]]))
   #?(:cljs (:require-macros [foundation.message :refer [message]]))
   #?(:clj (:import (java.io ByteArrayOutputStream ByteArrayInputStream))))
-
-; Java streams
-
-#?(:clj (defn format-stream
-          [s freeze thaw]
-          (let [out (ms/stream)]
-            (ms/connect (ms/map freeze out) s)
-            (ms/splice out (ms/map thaw s)))))
 
 ; Transit
 
@@ -64,11 +55,12 @@
              (~'s/cat :type #{~type} ~@catspec))))
 
 (defmulti ->client first)
-#_(message :error ->client :code keyword? :message string? :context (s/? any?))
+(message :error ->client :code keyword? :message string? :context (s/? any?))
 #_(message :ready ->client)
 (s/def ::->client (s/multi-spec ->client retag))
 
 (defmulti ->server first)
+#_(message :auth ->server :user string? :password string?) ; NB don't have cleartext password
 #_(message :init ->server)
 (s/def ::->server (s/multi-spec ->server retag))
 

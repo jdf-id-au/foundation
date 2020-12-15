@@ -10,18 +10,20 @@
         com.fzakaria/slf4j-timbre {:mvn/version "0.3.19"} ; redirect dependencies' slf4j requirements
         org.slf4j/slf4j-api {:mvn/version "1.7.30"}
 
+        jdf/sok {:local/root "../../../sok"}}}
+
         ; yada uses clojure.xml which causes reflection warning on java11
         ; https://github.com/juxt/yada/issues/305#issuecomment-615994934
         ; Includes buddy
         ; https://github.com/funcool/buddy-sign/blob/f906c4c9f470e3224819bd7016fe7bba09c1305b/doc/content.adoc
         ; Would be nice to slim down a bit but simple :exclusions don't work
-        yada/yada {:mvn/version "1.2.15"}
-        aleph/aleph {:mvn/version "0.4.6"}
-        buddy/buddy-hashers {:mvn/version "1.4.0"}
+        ;yada/yada {:mvn/version "1.2.15"}
+        ;aleph/aleph {:mvn/version "0.4.6"}
+        ;buddy/buddy-hashers {:mvn/version "1.4.0"}
 
         ; aleph causes error on java11, work around until yada deps updated
         ; https://github.com/juxt/edge/issues/26#issuecomment-394953143
         ; https://github.com/ztellman/aleph/issues/383#issuecomment-386233881
-        javax.xml.bind/jaxb-api {:mvn/version "2.3.0"}
+        ;javax.xml.bind/jaxb-api {:mvn/version "2.3.0"}
 
-        org.clojure/core.async {:mvn/version "1.3.610"}}} ; ?dynamically loaded by manifold but needed for uberjar
+        ;org.clojure/core.async {:mvn/version "1.3.610"}}} ; ?dynamically loaded by manifold but needed for uberjar
