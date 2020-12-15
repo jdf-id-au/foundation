@@ -51,7 +51,7 @@
         _ (go-loop []
             (if-let [[username msg] (<! in)]
               (if-let [conformed (fs/conform msg)]
-                (do (message/receive clients username conformed)
+                (do (message/receive clients out username conformed)
                     (recur))
                 (send! out {username [:error :incoming "Invalid message sent to server." msg]}))
               (log/info "Stopped receiving messages")))]
@@ -66,3 +66,9 @@
         (log/error "Websocket already associated with different user!" existing "vs" username ws-id)
         (assoc client-meta :username username)))))
 ; TODO will we rely on ws (over tls!) integrity for authorisation? i.e. no tokens?? xss etc??
+
+; TODO listen to clients and log (connect?)/auth/disconnect
+
+; NB decoupling explicit "every incoming message must return outgoing message" thing
+; should be good!
+; will need to rework lt proj

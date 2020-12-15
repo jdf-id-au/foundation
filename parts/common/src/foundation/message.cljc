@@ -85,7 +85,7 @@
 #?(:clj  (defmulti receive ; TODO *** implement (ws only?)
            "Called by `f.server/ws-receive` with [ws-send clients user conformed-msg].
             See specs."
-           (fn dispatch [clients user {:keys [type]}] type))
+           (fn dispatch [clients out user {:keys [type]}] type))
    :cljs (defmulti receive ; TODO *** implement (ws and ajax)
            "Called by the `f.client.connection/receive` defevent without coeffects.
             If a particular receive method needs coeffects, it can call another defevent itself.
