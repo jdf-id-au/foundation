@@ -10,8 +10,7 @@
         com.fzakaria/slf4j-timbre {:mvn/version "0.3.19"} ; redirect dependencies' slf4j requirements
         org.slf4j/slf4j-api {:mvn/version "1.7.30"}
 
-        jdf/sok {:local/root "../../../sok"}}}
-
+        jdf/talk {:local/root "../../../talk"}}}
         ; yada uses clojure.xml which causes reflection warning on java11
         ; https://github.com/juxt/yada/issues/305#issuecomment-615994934
         ; Includes buddy

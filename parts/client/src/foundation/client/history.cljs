@@ -1,4 +1,5 @@
 (ns foundation.client.history
+  "Eerily similar to bidi.router..."
   (:require [goog.events]
             [bidi.bidi :as bidi]
             [foundation.client.events :refer [navigate]]

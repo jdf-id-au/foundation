@@ -1,14 +1,12 @@
 (ns foundation.server.http)
-;[yada.yada :as yada]
-;[yada.handler]
-;[aleph.http :as http]
-;[manifold.deferred :as d]
-;[byte-streams :as bs]
-;[manifold.stream :as st]
-;[buddy.core.nonce :as nonce]
-;  (:import (org.bouncycastle.util.encoders Hex)))
-
-; TODO try something lighter weight and more up to date than yada... pedestal? wrap java?
+  ;[yada.yada :as yada]
+  ;[yada.handler]
+  ;[aleph.http :as http]
+  ;[manifold.deferred :as d]
+  ;[byte-streams :as bs]
+  ;[manifold.stream :as st]
+  ;[buddy.core.nonce :as nonce]
+  ;  (:import (org.bouncycastle.util.encoders Hex)))
 
 ; Recaptcha
 
