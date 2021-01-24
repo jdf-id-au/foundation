@@ -60,7 +60,7 @@
 (s/def ::->client (s/multi-spec ->client retag))
 
 (defmulti ->server first)
-#_(message :auth ->server :user string? :password string?) ; NB don't have cleartext password
+(message :auth ->server :user string? :password string?) ; NB don't have cleartext password
 #_(message :init ->server)
 (s/def ::->server (s/multi-spec ->server retag))
 
@@ -86,6 +86,7 @@
            "Called by `f.server/ws-receive` with [ws-send clients user conformed-msg].
             See specs."
            (fn dispatch [clients out user {:keys [type]}] type))
+           ; TODO validate user
    :cljs (defmulti receive ; TODO *** implement (ws and ajax)
            "Called by the `f.client.connection/receive` defevent without coeffects.
             If a particular receive method needs coeffects, it can call another defevent itself.

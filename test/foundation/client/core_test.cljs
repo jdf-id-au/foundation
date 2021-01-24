@@ -1,4 +1,4 @@
-(ns foundation.client.core
+(ns foundation.client.core-test
   "Facilitate automatic testing in browser.
    Ensure all relevant test namespaces are required (nested)."
   (:require [cljs.test :refer [report] :refer-macros [deftest is run-all-tests]]

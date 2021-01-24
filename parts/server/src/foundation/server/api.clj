@@ -13,65 +13,8 @@
             [clojure.core.async :as async :refer [chan go go-loop >! <! >!! <!!]]
             [foundation.config :as config]))
 
-
-
 (def conform (partial message/conform ::message/->server))
 (def validate (partial message/validate ::message/->client))
-
-;(def clients "Map of websocket-> nothing yet!" (atom {})) ; TODO ***
-;
-;(defn ws-send
-;  "Send `msg` to connected `user`s over their registered websocket/s.
-;  See `f.common.message` specs."
-;  [user-msg-map]
-;  (doseq [[user msg] user-msg-map
-;          :let [[type & _ :as validated]
-;                (or (validate msg) [:error :outgoing "Problem generating server reply." msg])
-;                [ws u] @clients]
-;          :when (= u user)]
-;    (if (= type :error) (log/warn "Telling" user "about server error" msg))
-;    (-> (st/put! ws validated)
-;        (d/chain #(if-not % (log/info "Failed to send" msg "to" user)
-;                            #_ (log/debug "Sent" msg "to" user)))
-;        (d/catch #(log/info "Error sending" msg "to" user %)))))
-
-
-
-
-
-;(defn ws-receive
-;  "Acknowledge request with appropriate reply."
-;  [user msg]
-;  (ws-send (if-let [conformed (conform msg)]
-;             (message/receive clients user conformed)
-;             {nil [:error :incoming "Invalid message sent to server." msg]})))
-
-;(defn setup-websocket
-;  "Maintain registry of clients" ; TODO *** and all the rest! see Leavetracker
-;  ; TODO need to have some idea who's who; could do by ip?
-;  ; better not to open ws for allcomers, should auth somehow first?
-;  [ws]
-;  (let [formatted-ws (format-stream ws ->transit <-transit)
-;        ws-hash (hash formatted-ws)]
-;    (log/debug "Preparing websocket" ws-hash)
-;    (st/on-closed formatted-ws (fn [] (log/debug "Disconnected" ws-hash)
-;                                      (swap! clients dissoc formatted-ws)))
-;    (swap! clients assoc formatted-ws :nothing-useful-yet)
-;    (st/put! formatted-ws [:ready])
-;    (log/debug "Web socket ready" ws-hash)
-;    (st/consume (partial ws-receive) formatted-ws)))
-
-;(defn websocket-handler [req]
-;  ; FIXME need to harden this public exposed endpoint
-;  (-> (http/websocket-connection req)
-;      (d/chain setup-websocket)
-;      (d/catch (fn [& args]
-;                 (log/info "Websocket exception" args)
-;                 {:status 400
-;                  :headers {"Content-type" "text/plain"}
-;                  :body "Expected a websocket request"}))))
-
-
 
 ; Administration
 
