@@ -21,11 +21,16 @@
      [query (or process (fn unprocessed [result & args] result))])))
 
 (defn answer
-  "Run query against given datascript store, with args if supplied (for `:in` clause).
+  "Run query (or index lookup) against given datascript store, with args if supplied (for `:in` clause, or for d/datoms).
    Post-process with supplied function, which *also* receives args."
   [store query process args]
+  (log/debug "answering query" query "args" args)
   (if (and store query process)
-    (apply process (apply datascript/q query store args) args)
+    (apply process
+      (case (first query)
+        :find (apply datascript/q query store args)
+        (:eavt :aevt :avet) (apply datascript/datoms store (concat query args)))
+      args)
     (log/error "Dropped query" {:store? (boolean store) :query query
                                 :process? (fn? process) :args args})))
 
