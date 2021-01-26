@@ -34,7 +34,7 @@
    Effect descriptions are vectors containing [kw & e-args]. The corresponding fn from the
    `fx` map atom is called with e-args. :no-op can be used for clarity if no effect is required."
   [name event-fn coeffects args]
-  (log/debug "Firing" name "with" coeffects "and" args)
+  #_(log/debug "Firing" name "with" coeffects "and" args)
   (let [cvalues (into {} (for [coeffect coeffects
                                :let [[cname & cargs] (if (coll? coeffect) coeffect [coeffect])
                                      [cfn & fargs] (retrieve-coeffect cname)]]
@@ -45,7 +45,7 @@
     (doseq [[ename & eargs] effects
             :when (not= ename :no-op)]
       (if-let [effect-fn (get @fx ename)]
-        (do (log/info "Firing effect-fn" ename eargs)
+        (do #_(log/info "Firing effect-fn" ename eargs)
             (try (apply effect-fn eargs)
                  (catch :default e
                    (log/throw "Error executing effect" ename "with" args ":" e))))

@@ -17,6 +17,7 @@
                  (concat default/tx-data tx-data))))
 
 (def register state/register)
+(def register-singleton state/register-singleton)
 (def subscribe state/subscribe)
 
 (defn start!
@@ -24,7 +25,7 @@
   [{:keys [root-component mount-point coeffects effects routes]
     :or {mount-point "app"}}]
   (events/setup! (merge default/coeffects coeffects) (merge default/effects effects))
-  (run! #(apply state/register %) default/subscriptions)
+  (run! state/register-singleton default/subscriptions)
   (history/setup! (or routes default/routes))
   (state/listen!)
   (history/listen!)

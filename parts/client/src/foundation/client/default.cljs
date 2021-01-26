@@ -35,9 +35,8 @@
     {:app/state ns}))
 
 (def subscriptions
-  (for [[n ks] state-locations
-        k ks]
-    [(keyword n k) [:find '?v '. :where [[:app/state n] k '?v]]]))
+  "Define some singleton storage value subscriptions, e.g. :ui/view (see `schema`)."
+  (for [[n ks] state-locations k ks] (keyword n k)))
 
 ; Support pure event-fns
 

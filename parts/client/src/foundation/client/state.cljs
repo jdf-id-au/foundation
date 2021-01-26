@@ -22,12 +22,20 @@
    (swap! subscriptions assoc name
      [query (or process (fn unprocessed [result & args] result))])))
 
+(defn register-singleton
+  "Convenience for registering singleton storage value subscriptions (see f.client.default/schema)."
+  ([nskw] (register-singleton nskw nil))
+  ([nskw process]
+   (let [ns (namespace nskw) n (name nskw)]
+     ; NB could consider `[:eavt [:app/state ns] n] (comp :v first)` if slow
+     (register (keyword ns n) [:find '?v '. :where [[:app/state (keyword ns)] (keyword n) '?v]] process))))
+
 (defn- run-sub-impl
   "Look up subscription and run it."
   [store answer-fn name & args]
-  (let [[query process] (name @subscriptions)]
-    #_(log/debug "running" name query)
-    (answer-fn store query process args)))
+  (if-let [[query process] (name @subscriptions)]
+    (answer-fn store query process args)
+    (log/error "No such subscription" name)))
 
 (defn answer ; TODO memoise? profile?
   "Find value of subscription, by:
@@ -63,12 +71,13 @@
   (let [[query process] (name @subscriptions)
         state (answer @store query process args)
         [_ set-state!] (hooks/use-state state)]
-    (hooks/use-effect :always ; NB not specifying React deps (macro wants literal vector, not `args`)
+    (hooks/use-effect :always
+      ; NB not specifying React deps (macro wants literal vector, not `args`)
       ; FIXME too much remember/forget churn?
-      (log/debug "Remembering setter for" name  "with args" args)
+      #_(log/debug "Remembering setter for" name  "with args" args)
       (swap! setters assoc-in [name args] set-state!)
       (fn clean-up []
-        (log/debug "Forgetting setter for" name "with args" args)
+        #_(log/debug "Forgetting setter for" name "with args" args)
         (swap! setters update name dissoc args)))
     state))
 
