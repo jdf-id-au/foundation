@@ -36,6 +36,7 @@
 (defn- run-sub-impl
   "Look up subscription and run it."
   [store answer-fn name & args]
+  #_(log/debug "Trying to run sub" name args (name @subscriptions))
   (if-let [[query process] (name @subscriptions)]
     (answer-fn store query process args)
     (log/error "No such subscription" name)))
@@ -50,13 +51,15 @@
       query e.g. `{:sub-name [sub-args ...]}`
    Post-process with supplied function, which *also* receives args."
   [store query process args]
-  #_(log/debug "answering query" query "args" args "against" store)
+  #_(log/debug "answering query" query "args" args "with" process "store" (boolean store))
   (if (and store query process)
     (let [q (case (first query)
               :find (apply datascript/q query store args)
               (:eavt :aevt :avet) (apply datascript/datoms store (concat query args))
               (if (map? query)
                 (into {}
+                  ; TODO method for passing args through from calling sub?
+                  ; TODO cache subquery results within a given run to prevent reexecution (shouldn't need to include actual store)
                   (map (fn [[sub-name sub-args]]
                          [sub-name (apply run-sub-impl store answer sub-name sub-args)]))
                   query)
@@ -67,10 +70,13 @@
     (log/error "Dropped query" {:store? (boolean store) :query query
                                 :process? (fn? process) :args args})))
 
+(defn sub-exists? [name] (contains? @subscriptions name))
+
 (defn subscribe
   "Wire up React set-state! for given subscription.
    args are passed to the subscription's query *and* its post-processing function."
   [name & args]
+  {:pre [(sub-exists? name)]}
   (let [[query process] (name @subscriptions)
         state (answer @store query process args)
         [_ set-state!] (hooks/use-state state)]
@@ -83,8 +89,6 @@
         (swap! setters update name update args disj set-state!)))
     state))
 
-(defn sub-exists? [name] (contains? @subscriptions name))
-
 (defn run-sub
   "Run subscription for use in coeffect."
   [name & args] ; has to be defn because otherwise derefs store prematurely!
@@ -95,6 +99,7 @@
   [{:keys [tx-meta db-after] :as tx-report}]
   ; TODO be more selective (if there's a performance problem), haven't decided how
   (doseq [[name [query process]] @subscriptions
+          #_#__ (log/debug "watched" name query)
           [args ss] (name @setters)
           :let [result (answer db-after query process args)]
           setter ss]
