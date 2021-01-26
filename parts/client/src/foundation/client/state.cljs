@@ -12,8 +12,11 @@
 
 (defn store!
   "Set up datascript store."
-  [schema tx-data] (reset! store (-> (datascript/empty-db schema)
-                                     (datascript/db-with tx-data))))
+  [schema tx-data]
+  (if (= @store (datascript/empty-db))
+    (reset! store (-> (datascript/empty-db schema)
+                      (datascript/db-with tx-data)))
+    (log/warn "Would have overwritten data.")))
 
 (defn register
   "Register a subscription, being a query and optional post-processing function."
@@ -37,7 +40,7 @@
     (answer-fn store query process args)
     (log/error "No such subscription" name)))
 
-(defn answer ; TODO memoise? profile?
+(defn answer ; TODO profile?
   "Find value of subscription, by:
     - running query against given datascript store (args bound by `:in` clause), or
       query e.g. `'[:find ...]`
@@ -70,22 +73,17 @@
   [name & args]
   (let [[query process] (name @subscriptions)
         state (answer @store query process args)
-        [state set-state!] (hooks/use-state state)]
-    (hooks/use-effect :auto-deps ; TODO try :auto-deps
+        [_ set-state!] (hooks/use-state state)]
+    (hooks/use-effect :auto-deps ; TODO contemplate :always vs :auto-deps
       ; FIXME too much remember/forget churn?
-      (log/debug "Remembering setter for" name "with args" args)
-      #_(if (get-in @setters [name args])
-          (log/error "Already have setter for" name)
-          (swap! setters assoc-in [name args] set-state!))
+      #_(log/debug "Remembering setter for" name "with args" args)
       (swap! setters update name update args #(into #{set-state!} %))
       (fn clean-up []
-        (log/debug "Forgetting setter for" name "with args" args)
-        #_(swap! setters update name dissoc args)
+        #_(log/debug "Forgetting setter for" name "with args" args)
         (swap! setters update name update args disj set-state!)))
     state))
 
-(defn sub-exists? [name]
-  (contains? @subscriptions name))
+(defn sub-exists? [name] (contains? @subscriptions name))
 
 (defn run-sub
   "Run subscription for use in coeffect."
@@ -94,7 +92,8 @@
 
 (defn watcher
   "Fire subscriptions when datascript store changes."
-  [{:keys [tx-meta db-after] :as tx-report}] ; TODO be more selective, haven't decided how
+  [{:keys [tx-meta db-after] :as tx-report}]
+  ; TODO be more selective (if there's a performance problem), haven't decided how
   (doseq [[name [query process]] @subscriptions
           [args ss] (name @setters)
           :let [result (answer db-after query process args)]
@@ -102,6 +101,4 @@
     (setter result)))
 
 (def transact! (partial datascript/transact! store))
-
-(defn listen! []
-  (datascript/listen! store :subs watcher))
+(defn listen! [] (datascript/listen! store :subs watcher))

@@ -36,6 +36,7 @@
   "Callback for EventType.NAVIGATE ."
   [event]
   (let [token (.-token ^Event event)
+        _ (.preventDefault event) ; think this debounces \"Navigated\" below
         {:keys [handler route-params]} (bidi/match-route @-routes token)
         path-check (path-for handler route-params)]
     (if (= token path-check)
