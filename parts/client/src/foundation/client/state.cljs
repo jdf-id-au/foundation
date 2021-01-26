@@ -8,6 +8,8 @@
 (defonce subscriptions (atom {}))
 (defonce setters (atom {}))
 
+#_(add-watch store :debug (fn [key ref old new] (log/debug "watching store" old "->" new)))
+
 (defn store!
   "Set up datascript store."
   [schema tx-data] (reset! store (-> (datascript/empty-db schema)
@@ -20,17 +22,37 @@
    (swap! subscriptions assoc name
      [query (or process (fn unprocessed [result & args] result))])))
 
-(defn answer
-  "Run query (or index lookup) against given datascript store, with args if supplied (for `:in` clause, or for d/datoms).
+(defn- run-sub-impl
+  "Look up subscription and run it."
+  [store answer-fn name & args]
+  (let [[query process] (name @subscriptions)]
+    #_(log/debug "running" name query)
+    (answer-fn store query process args)))
+
+(defn answer ; TODO memoise? profile?
+  "Find value of subscription, by:
+    - running query against given datascript store (args bound by `:in` clause), or
+      query e.g. `'[:find ...]`
+    - running index lookup against given datascript store (args applied to `d/datoms` call), or
+      query e.g. `[:aevt :attribute-name]`
+    - referring to the value of other subscriptions.
+      query e.g. `{:sub-name [sub-args ...]}`
    Post-process with supplied function, which *also* receives args."
   [store query process args]
-  (log/debug "answering query" query "args" args)
+  #_(log/debug "answering query" query "args" args "against" store)
   (if (and store query process)
-    (apply process
-      (case (first query)
-        :find (apply datascript/q query store args)
-        (:eavt :aevt :avet) (apply datascript/datoms store (concat query args)))
-      args)
+    (let [q (case (first query)
+              :find (apply datascript/q query store args)
+              (:eavt :aevt :avet) (apply datascript/datoms store (concat query args))
+              (if (map? query)
+                (into {}
+                  (map (fn [[sub-name sub-args]]
+                         [sub-name (apply run-sub-impl store answer sub-name sub-args)]))
+                  query)
+                ::unsupported))] ; allow nil return value from queries
+      (case q ::unsupported (do (log/error "Unsupported query" query)
+                                (throw (js/Error. "Unsupported query")))
+        (apply process q args)))
     (log/error "Dropped query" {:store? (boolean store) :query query
                                 :process? (fn? process) :args args})))
 
@@ -55,9 +77,8 @@
 
 (defn run-sub
   "Run subscription for use in coeffect."
-  [name & args]
-  (let [[query process] (name @subscriptions)]
-    (answer @store query process args)))
+  [name & args] ; has to be defn because otherwise derefs store prematurely!
+  (apply run-sub-impl @store answer name args))
 
 (defn watcher
   "Fire subscriptions when datascript store changes."

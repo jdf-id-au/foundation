@@ -11,8 +11,10 @@
 
 (defn store!
   ([schema] (store! schema []))
-  ([schema tx-data] (state/store! (merge default/schema schema)
-                                  (concat default/tx-data tx-data))))
+  ([schema tx-data]
+   #_(log/debug "setting up store with" (merge default/schema schema))
+   (state/store! (merge default/schema schema)
+                 (concat default/tx-data tx-data))))
 
 (def register state/register)
 (def subscribe state/subscribe)
