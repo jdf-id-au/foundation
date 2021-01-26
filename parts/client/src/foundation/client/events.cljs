@@ -15,6 +15,11 @@
       (and (state/sub-exists? name) [(partial state/run-sub name)])
       (log/throw "No such coeffect" name)))
 
+(defn dispatch!
+  [event-fn & args]
+  #_(log/debug "dispatching" event-fn args)
+  (apply event-fn args))
+
 (defn do!
   "Allows event-fn to be pure by specifying coeffects (inputs),
    then executing the returned effect descriptions (outputs).

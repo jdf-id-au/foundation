@@ -1,6 +1,7 @@
 (ns foundation.client.default
   (:require [foundation.client.history :as history]
             [foundation.client.state :as state]
+            [foundation.client.events :as events]
             [foundation.client.logging :as log]
             [foundation.client.connection :as connection]))
 
@@ -50,6 +51,7 @@
    :debug log/debug
    :navigate history/navigate!
    :back #(.back js/window.history)
+   :dispatch events/dispatch!
    ;:get connection/get!
    ;:post connection/post!
    ;:auth connection/auth!

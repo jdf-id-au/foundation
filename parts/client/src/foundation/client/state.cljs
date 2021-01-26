@@ -70,15 +70,18 @@
   [name & args]
   (let [[query process] (name @subscriptions)
         state (answer @store query process args)
-        [_ set-state!] (hooks/use-state state)]
-    (hooks/use-effect :always
-      ; NB not specifying React deps (macro wants literal vector, not `args`)
+        [state set-state!] (hooks/use-state state)]
+    (hooks/use-effect :auto-deps ; TODO try :auto-deps
       ; FIXME too much remember/forget churn?
-      #_(log/debug "Remembering setter for" name  "with args" args)
-      (swap! setters assoc-in [name args] set-state!)
+      (log/debug "Remembering setter for" name "with args" args)
+      #_(if (get-in @setters [name args])
+          (log/error "Already have setter for" name)
+          (swap! setters assoc-in [name args] set-state!))
+      (swap! setters update name update args #(into #{set-state!} %))
       (fn clean-up []
-        #_(log/debug "Forgetting setter for" name "with args" args)
-        (swap! setters update name dissoc args)))
+        (log/debug "Forgetting setter for" name "with args" args)
+        #_(swap! setters update name dissoc args)
+        (swap! setters update name update args disj set-state!)))
     state))
 
 (defn sub-exists? [name]
@@ -93,8 +96,9 @@
   "Fire subscriptions when datascript store changes."
   [{:keys [tx-meta db-after] :as tx-report}] ; TODO be more selective, haven't decided how
   (doseq [[name [query process]] @subscriptions
-          [args setter] (name @setters)
-          :let [result (answer db-after query process args)]]
+          [args ss] (name @setters)
+          :let [result (answer db-after query process args)]
+          setter ss]
     (setter result)))
 
 (def transact! (partial datascript/transact! store))
