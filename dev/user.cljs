@@ -39,5 +39,5 @@
                          :now [tm/now]}
              :effects {:clicked println}}))
 
-(defn init []
+(defn ^:export init []
   (start-up))

@@ -36,7 +36,9 @@
   "Callback for EventType.NAVIGATE ."
   [event]
   (let [token (.-token ^Event event)
-        _ (.preventDefault event) ; think this debounces \"Navigated\" below
+        ; might not be necessary to debounce \"Navigated\" below
+        ; might actually just need to unlisten in dev setting so listeners don't accumulate
+        #_#__ (.preventDefault event)
         {:keys [handler route-params]} (bidi/match-route @-routes token)
         path-check (path-for handler route-params)]
     (if (= token path-check)
