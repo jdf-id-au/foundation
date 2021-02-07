@@ -1,24 +1,6 @@
 (ns foundation.common.logging
-  (:require [taoensso.encore :as encore] ; clj deps from parts/server
-            [taoensso.timbre :as log])
+  (:require [taoensso.timbre :as log])
   (:import (java.util TimeZone)))
-
-(defn ns-filter [fltr] (-> fltr encore/compile-ns-filter encore/memoize_))
-(defn ns-pattern-level
-  "Middleware after https://github.com/yonatane/timbre-ns-pattern-level"
-  [ns-patterns]
-  (fn log-by-ns-pattern [{:keys [?ns-str config level] :as opts}]
-    (let [namesp (or (some->> ns-patterns
-                              keys
-                              (filter #(and (string? %)
-                                            ((ns-filter %) ?ns-str)))
-                              not-empty
-                              (apply max-key count))
-                     :all)
-          loglevel (get ns-patterns namesp (get config :level))]
-      (when (and (log/may-log? loglevel namesp)
-                 (log/level>= level loglevel))
-        opts))))
 
 (defn pprint
   "Middleware after https://github.com/ptaoussanis/timbre/issues/184#issuecomment-397421329"
@@ -31,7 +13,7 @@
 (defn configure
   "Add middleware and config logging with sane defaults."
   [log-level]
-  (log/merge-config! {:middleware [pprint
-                                   (ns-pattern-level {"io.netty.*" :info
-                                                      :all log-level})]
+  (log/merge-config! {:middleware [pprint]
+                      :min-level [[#{"io.netty.*"} :info]
+                                  [#{"*"} log-level]]
                       :timestamp-opts {:timezone (TimeZone/getDefault)}}))
