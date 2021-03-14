@@ -24,7 +24,7 @@ Pursues [Jamstack](https://jamstack.org/) concept, with statically served client
 
 ### Server: `jdf/foundation-server`
 - config system integrated with cli
-- TODO websocket communication option
+- TODO websocket communication option (using [jdf/talk](https://github.com/jdf-id-au/talk))
 
 [comment]: <> (- [recaptcha]&#40;https://www.google.com/recaptcha/&#41; support)
 [comment]: <> (- [nonce]&#40;https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src &#41; and [CSP]&#40;https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP&#41; support)

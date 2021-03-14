@@ -1,7 +1,7 @@
 {:paths ["src"]
- :deps {datascript/datascript {:mvn/version "1.0.1"}
+ :deps {datascript/datascript {:mvn/version "1.0.7"}
         ; :local/url "../../../thing" not working
         jdf/comfort {:git/url "https://github.com/jdf-id-au/comfort"
-                     :sha "b2956516227b430cce9aea4036c77eb3200fcc07"}
+                     :sha "e72e84ab340901ba226ce4bf357f102679bf9288"}
         jdf/temper {:git/url "https://github.com/jdf-id-au/temper.git"
-                    :sha "11013a4565a5241c878c96d927940cff2e047238"}}}
+                    :sha "112349bf82a7f9b58d73ca29a980580d02f98d68"}}}

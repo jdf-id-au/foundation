@@ -1,5 +1,4 @@
 (ns foundation.spec
-  "yada :parameters uses plumatic/schema, we use clojure.spec everywhere else."
   (:require #?@(:clj  [[clojure.spec.alpha :as s]
                        [clojure.spec.gen.alpha :as gen]
                        [clojure.java.io :as io]]
