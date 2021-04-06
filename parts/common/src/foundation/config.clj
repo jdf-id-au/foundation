@@ -26,8 +26,11 @@
   (cond-> (assoc m :version (version))
     (some-> m :dev :host) (update-in [:dev :host] #(case % :site-local (host), %))))
 
+(def config-filename "config.edn")
+
 (defn load
   "Load config file and validate against spec."
+  ([spec] (load spec config-filename))
   ([spec filename] (load spec filename identity))
   ([spec filename process]
    (let [f (io/file filename)]

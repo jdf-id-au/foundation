@@ -6,25 +6,23 @@
             [clojure.data.json :as json]
             [taoensso.timbre :as log]
             [foundation.spec :as fs]
+            [foundation.config :as fc]
             [foundation.common.logging :as fl]
-            [foundation.message :as message]
+            [foundation.message :as fm]
             [clojure.java.io :as io]
-            [sok.api :as sok]
-            [clojure.core.async :as async :refer [chan go go-loop >! <! >!! <!!]]
-            [foundation.config :as config]))
+            [talk.api :as talk]
+            [clojure.core.async :as async :refer [chan go go-loop >! <! >!! <!!]]))
 
-(def conform (partial message/conform ::message/->server))
-(def validate (partial message/validate ::message/->client))
+(def conform (partial fm/conform ::fm/->server))
+(def validate (partial fm/validate ::fm/->client))
 
 ; Administration
-
-(def config-filename "config.edn")
 
 (def cli-options
   "Basic set of options"
   [["-h" "--help" "Show this help text."]
    ["-c" "--config FILE" "Use specified config file."
-    :default config-filename
+    :default fc/config-filename
     :validate [#(s/valid? ::fs/config-file %) "No such config file."]]
    ["-p" "--port PORT" "Use specified port."
     :default 8000
@@ -50,7 +48,7 @@
   "Roll up relevant cli options into config (default: port and dry-run)."
   [spec {:keys [config] :as options} & additional-keys]
   (log/debug "Rolling up" spec "with" options "and" additional-keys)
-  (merge (config/load spec config) (select-keys options (conj additional-keys :port :dry-run))))
+  (merge (fc/load spec config) (select-keys options (conj additional-keys :port :dry-run))))
 
 (defn validate-args
   [desc cli-options args]
@@ -73,3 +71,17 @@
   [desc cli-options args]
   (let [{exit-args :exit :as validated} (validate-args desc cli-options args)]
     (if exit-args (apply exit exit-args) validated)))
+
+; Server
+
+#_(defn server!
+    "Set up http/websocket server using talk.api/server!
+   Format its in/out chans with transit.
+   Hook into auth system.
+   Application needs to process unauth channel and call `auth`."
+    [& args]
+    (let [{:keys [clients] :as server} (apply talk/server! args)
+          out (chan)
+          _ (go-loop []
+              (if-let [[username msg] (<! out)]))])) ; TODO validate
+              ; TODO send Text or Binary to all user's ws connections, but response only to Request channel!
