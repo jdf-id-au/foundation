@@ -2,7 +2,7 @@
 
 Ffff-framework for client-server web applications. Very alpha.
 
-Pursues [Jamstack](https://jamstack.org/) concept, with statically served client (configurable via html and edn), websocket-centric server, and common, `clojure.spec`-ed messages.
+Pursues [Jamstack](https://jamstack.org/) concept, with statically served client (configurable via html and edn), websocket-centric server, and common, `clojure.spec`-ed messages over transit.
 
 ## Structure
 
@@ -26,6 +26,7 @@ Pursues [Jamstack](https://jamstack.org/) concept, with statically served client
 - config system integrated with cli
 - TODO websocket communication option (using [jdf/talk](https://github.com/jdf-id-au/talk))
 - TODO limited file serving for convenience (better to serve static client with dedicated webserver like [nginx](https://www.nginx.com/))
+- TODO ability to serve generated json etc (not just transit) to support conventional ReST
 
 [comment]: <> (- [recaptcha]&#40;https://www.google.com/recaptcha/&#41; support)
 [comment]: <> (- [nonce]&#40;https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src &#41; and [CSP]&#40;https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP&#41; support)

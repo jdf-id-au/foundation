@@ -74,14 +74,22 @@
 
 ; Server
 
-#_(defn server!
-    "Set up http/websocket server using talk.api/server!
+(defn server!
+  "Set up http/websocket server using talk.api/server!
    Format its in/out chans with transit.
    Hook into auth system.
    Application needs to process unauth channel and call `auth`."
-    [& args]
-    (let [{:keys [clients] :as server} (apply talk/server! args)
-          out (chan)
-          _ (go-loop []
-              (if-let [[username msg] (<! out)]))])) ; TODO validate
+  [& args]
+  (let [{:keys [clients] :as server} (apply talk/server! args)
+        out (chan)
+        _ (go-loop []
+            (if-let [[username msg] (<! out)] ; TODO conform msg
               ; TODO send Text or Binary to all user's ws connections, but response only to Request channel!
+              (do (doseq [id (reduce (fn [[ids [id {existing :username}]]]
+                                       (when (= existing username) (conj ids id) ids))
+                               #{} @clients)]
+                    (when-not (>! (server :out) (->Text id (->transit msg)))
+                      (log/error "Dropped outgoing message to" username
+                        "because server out chan is closed" msg)))
+                  (recur))
+              (log/info "Stopped sending messages")))]))
