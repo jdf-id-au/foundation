@@ -11,7 +11,10 @@
             [foundation.message :as fm]
             [clojure.java.io :as io]
             [talk.api :as talk]
-            [clojure.core.async :as async :refer [chan go go-loop >! <! >!! <!!]]))
+            [clojure.core.async :as async :refer [chan go go-loop >! <! >!! <!!]])
+  (:import (talk.http Connection Request Attribute File Trail)
+           (talk.ws Text Binary)))
+
 
 (def conform (partial fm/conform ::fm/->server))
 (def validate (partial fm/validate ::fm/->client))
@@ -74,6 +77,30 @@
 
 ; Server
 
+; TODO sort this out... user should be able to do different interactions on different channels
+; consider passing clients map through to application??
+; help with transit coding
+; auth by updating clients map
+(defprotocol Receive
+  (receive [this clients]))
+(extend-protocol Receive
+  Connection
+  (receive [{:keys [channel state]} clients]
+    (let [{:keys [username addr] :as client-meta} (clients channel)]
+      ; Possible because clients map updated before connection and after disconnection
+      (log/info (or username "unknown")
+        (case state :http "connected to" :ws "upgraded to ws on" nil "disconnected from")
+        channel (when state (str "from " addr)))))
+  Request
+  (receive [{:keys [channel state]} clients]
+    (let [{:keys [username] :as client-meta} (clients channel)]))
+
+  Attribute
+  File
+  Trail
+  Text
+  Binary)
+
 (defn server!
   "Set up http/websocket server using talk.api/server!
    Format its in/out chans with transit.
@@ -81,6 +108,10 @@
    Application needs to process unauth channel and call `auth`."
   [& args]
   (let [{:keys [clients] :as server} (apply talk/server! args)
+        in (chan)
+        unauth (chan)
+        _ (go-loop [])
+
         out (chan)
         _ (go-loop []
             (if-let [[username msg] (<! out)] ; TODO conform msg

@@ -22,8 +22,8 @@
             "because application out chan is closed" msg)))))
         ; TODO catch exceptions?
 
-(defn auth [clients ws-id username]
-  (swap! clients cc/update-if-present ws-id
+(defn auth [clients channel username]
+  (swap! clients cc/update-if-present channel
     (fn [{existing :username :keys [addr] :as client-meta}]
       (if (and existing (not= existing username))
         (log/error "Websocket already associated with different user!" existing "vs" username addr)
@@ -40,7 +40,7 @@
                (log/warn "Unrecognised message on unauth chan")))
          (log/warn "Tried to read from closed application auth chan"))))
 
-(defn setup ; FIXME to both http and ws, protocolised
+(defn setup ; FIXME use as template to write f.s.api/server! and f.s.api/Receive protocol
   "Set up websocket server using talk.api/server!
    Format its in/out chans with transit.
    Hook into auth system.
