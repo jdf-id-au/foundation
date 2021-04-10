@@ -87,8 +87,8 @@
   (receive [this server]))
 (extend-protocol Receive
   Connection
-  (receive [{:keys [talk.http/channel state]} server]
-    (let [{:keys [username addr] :as client-meta} (get-in server [:clients channel])]
+  (receive [{:keys [channel state]} {:keys [clients] :as server}]
+    (let [{:keys [username addr] :as client-meta} (get @clients channel)]
       ; Possible because clients map updated before connection and after disconnection
       (log/info (or username "unknown")
         (case state :http "connected to" :ws "upgraded to ws on" nil "disconnected from")
@@ -98,6 +98,8 @@
             {:keys [routes clients] :as server}]
     #_(assert (not (or handler route-params parts)))
     (assert (nil? (get-in clients [channel :upload])) "Unprocessed upload at time of new request")
+    ;(log/debug "Received" this)
+    ;(log/debug "Matching" (bidi/match-route routes path))
     (let [req+route (merge this (bidi/match-route routes path))]
       (case method
         (:get :delete) (fsh/handler req+route server)
@@ -113,9 +115,12 @@
   (receive [{:keys [channel] :as this} {:keys [clients]}]
     (swap! clients update-in [channel :upload :parts] conj this))
   Trail ; NB relying on this ALWAYS appearing with PUT/POST/PATCH
-  (receive [{:keys [channel] :as this} {:keys [clients]}]
-    (fsh/handler (update (:upload channel) :parts conj this))
-    (swap! clients update channel dissoc :upload))
+  (receive [{:keys [channel cleanup] :as this} {:keys [clients] :as server}]
+    ; NB problem is it seems to come across with plain GET too...
+    (when-let [upload (get-in @clients [channel :upload])]
+      (fsh/handler (update upload :parts conj this) server)
+      (swap! clients update channel dissoc :upload))
+    (cleanup))
   Text
   (receive [{:keys [channel text] :as this} server]
     (if-let [conformed (-> text <-transit conform)]

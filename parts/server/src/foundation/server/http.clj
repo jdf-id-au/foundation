@@ -1,5 +1,6 @@
 (ns foundation.server.http
-  (:require [clojure.core.async :as async :refer [>!!]]))
+  (:require [clojure.core.async :as async :refer [>!!]]
+            [taoensso.timbre :as log]))
   ;[yada.yada :as yada]
   ;[yada.handler]
   ;[aleph.http :as http]
@@ -80,5 +81,6 @@
 
 (defmulti handler
   (fn dispatch [{:keys [handler]} _] handler))
-(defmethod handler :default [{:keys [channel]} {:keys [out] :as server}]
+(defmethod handler :default [{:keys [channel] :as request} {:keys [out] :as server}]
+  (log/debug "No handler for request" request)
   (async/put! out {:channel channel :status 404}))
