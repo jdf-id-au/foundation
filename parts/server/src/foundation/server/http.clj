@@ -1,4 +1,5 @@
-(ns foundation.server.http)
+(ns foundation.server.http
+  (:require [clojure.core.async :as async :refer [>!!]]))
   ;[yada.yada :as yada]
   ;[yada.handler]
   ;[aleph.http :as http]
@@ -76,3 +77,8 @@
 ;                       :interceptor-chain yada/default-interceptor-chain))
 ;      (yada.handler/prepend-interceptor add-nonce)
 ;      (yada.handler/append-interceptor yada.security/security-headers add-csp)))
+
+(defmulti handler
+  (fn dispatch [{:keys [handler]} _] handler))
+(defmethod handler :default [{:keys [channel]} {:keys [out] :as server}]
+  (async/put! out {:channel channel :status 404}))

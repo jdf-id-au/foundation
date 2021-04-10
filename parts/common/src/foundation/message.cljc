@@ -48,7 +48,8 @@
            key/predicate pairs."
           ; Key-pred redundancy is interesting but won't factor out just yet.
           [type multi & catspec]
-          (assert (keyword? `~type))
+          (assert (not-any? #(= % '(:foundation.spec.api/channel)) (partition 1 2 catspec))
+            "Can't use :foundation.spec.api/channel keyword. See foundation.spec.api/Receive for Text.")
           `(defmethod ~multi ~type [~'_]
              ; I don't 100% understand why ~'s/cat works cross-platform, but it does!
              ; Unquoting (evaluating) a quoted symbol just gives the symbol, I think?
@@ -61,6 +62,7 @@
 
 (defmulti ->server first)
 (message :auth ->server :user string? :password string?) ; NB don't have cleartext password
+(message :binary ->server :data bytes?)
 #_(message :init ->server)
 (s/def ::->server (s/multi-spec ->server retag))
 
@@ -85,7 +87,7 @@
 #?(:clj  (defmulti receive ; TODO *** implement (ws only?)
            "Called by `f.server/ws-receive` with [ws-send clients user conformed-msg].
             See specs."
-           (fn dispatch [clients out user {:keys [type]}] type))
+           (fn dispatch [{:keys [type]} server] type))
            ; TODO validate user
    :cljs (defmulti receive ; TODO *** implement (ws and ajax)
            "Called by the `f.client.connection/receive` defevent without coeffects.

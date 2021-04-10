@@ -1,4 +1,4 @@
-(ns foundation.common.logging
+(ns foundation.logging
   (:require [taoensso.timbre :as log])
   (:import (java.util TimeZone)))
 

@@ -40,51 +40,51 @@
                (log/warn "Unrecognised message on unauth chan")))
          (log/warn "Tried to read from closed application auth chan"))))
 
-(defn setup ; FIXME use as template to write f.s.api/server! and f.s.api/Receive protocol
-  "Set up websocket server using talk.api/server!
+#_(defn setup
+    "Set up websocket server using talk.api/server!
    Format its in/out chans with transit.
    Hook into auth system.
    Application needs to process unauth channel and call `auth`"
-  [& args]
-  (let [{:keys [clients] :as server} (apply talk/server! args)
-        out (chan)
-        _ (go-loop []
-            (if-let [[username msg] (<! out)] ; TODO validate
-              (do ; tell user on as many channels as they may be connected
-                ; NB could extend this to broadcast by role too (put roles in at auth-ws etc)
-                ; although risk getting out of sync with actual db roles!
-                (doseq [id (reduce (fn [[ids [id {existing :username}]]]
-                                     (if (= existing username) (conj ids id) ids))
-                             #{} @clients)]
-                  (when-not (>! (server :out) (->Text id (->transit msg)))
-                    (log/error "Dropped outgoing message to" username
-                      "because server out chan is closed" msg)))
-                (recur))
-              (log/info "Stopped sending messages")))
-        in (chan)
-        unauth (chan)
-        _ (go-loop []
-            ; NB destructuring whatever record comes in rather than using a protocol
-            (if-let [{:keys [channel open? text]} (<! (server :in))] ; TODO validate
-              ; TODO confirm ws not http?
-              (do (if-let [{:keys [username addr #_type] :as client-meta} (@clients channel)]
-                    (cond
-                      (true? open?) (log/info (or username "unknown") "connected at" addr "on" channel)
-                      (false? open?) (log/info (or username "unknown") "disconnected at" addr)
-                      username (when-not (>! in [username (<-transit text)])
-                                 (log/error "Dropped incoming message from" username
-                                   "because application in chan is closed" msg))
-                      :else (when-not (>! unauth [ws-id (<-transit text)])
-                              (log/error "Dropped incoming unauth message because unauth chan is closed"
-                                msg)))
-                    (log/error "Websocket id not found in clients registry" @clients channel))
+    [& args]
+    (let [{:keys [clients] :as server} (apply talk/server! args)
+          out (chan)
+          _ (go-loop []
+              (if-let [[username msg] (<! out)] ; TODO validate
+                (do ; tell user on as many channels as they may be connected
+                  ; NB could extend this to broadcast by role too (put roles in at auth-ws etc)
+                  ; although risk getting out of sync with actual db roles!
+                  (doseq [id (reduce (fn [[ids [id {existing :username}]]]
+                                       (if (= existing username) (conj ids id) ids))
+                               #{} @clients)]
+                    (when-not (>! (server :out) (->Text id (->transit msg)))
+                      (log/error "Dropped outgoing message to" username
+                        "because server out chan is closed" msg)))
                   (recur))
-              (log/warn "Tried to read from closed server in chan")))
-        _ (go-loop []
-            (if-let [[username msg] (<! in)] ; TODO validate
-              (do (if-let [conformed (fs/conform msg)]
-                    (message/receive clients out username conformed)
-                    (send out {username [:error :incoming "Invalid message sent to server." msg]}))
-                  (recur))
-              (log/info "Stopped receiving messages")))]
-    (-> server (dissoc :in) (assoc :out out :unauth unauth))))
+                (log/info "Stopped sending messages")))
+          in (chan)
+          unauth (chan)
+          _ (go-loop []
+              ; NB destructuring whatever record comes in rather than using a protocol
+              (if-let [{:keys [channel open? text]} (<! (server :in))] ; TODO validate
+                ; TODO confirm ws not http?
+                (do (if-let [{:keys [username addr #_type] :as client-meta} (@clients channel)]
+                      (cond
+                        (true? open?) (log/info (or username "unknown") "connected at" addr "on" channel)
+                        (false? open?) (log/info (or username "unknown") "disconnected at" addr)
+                        username (when-not (>! in [username (<-transit text)])
+                                   (log/error "Dropped incoming message from" username
+                                     "because application in chan is closed" msg))
+                        :else (when-not (>! unauth [ws-id (<-transit text)])
+                                (log/error "Dropped incoming unauth message because unauth chan is closed"
+                                  msg)))
+                      (log/error "Websocket id not found in clients registry" @clients channel))
+                    (recur))
+                (log/warn "Tried to read from closed server in chan")))
+          _ (go-loop []
+              (if-let [[username msg] (<! in)] ; TODO validate
+                (do (if-let [conformed (fs/conform msg)]
+                      (message/receive clients out username conformed)
+                      (send out {username [:error :incoming "Invalid message sent to server." msg]}))
+                    (recur))
+                (log/info "Stopped receiving messages")))]
+      (-> server (dissoc :in) (assoc :out out :unauth unauth))))
