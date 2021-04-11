@@ -91,9 +91,9 @@
   (async/put! out {:channel channel :status 404}))
 
 (def content-types
-  {:html "text/html"
-   :css "text/css"
-   :js "text/javascript"
+  {:html "text/html; charset=utf-8"
+   :css "text/css; charset=utf-8"
+   :js "text/javascript; charset=utf-8"
    :jpg "image/jpeg"
    :png "image/png"
    :gif "image/gif"})
@@ -106,11 +106,12 @@
     (if-let [^File safe-local (cio/safe-subpath "public"
                                 (case path "/" "index.html" path))] ; deliberately hardcoded "public/"
       ; URLConnection/guessContentTypeFromName doesn't have .js !
-      (if-let [content-type (-> safe-local cio/get-extension keyword content-types)]
+      (if-let [content-type (some-> safe-local cio/get-extension keyword content-types)]
         (async/put! out {:channel channel :status 200
                          ; TOOD parse :accept header (without bringing in a million deps)
                          ; https://tools.ietf.org/html/rfc7231#section-5.3.2
-                         :headers {:content-type content-type}
+                         :headers {:content-type content-type
+                                   :x-content-type-options "nosniff"}
                          :content safe-local})
         (async/put! out {:channel channel :status 404}))
       (async/put! out {:channel channel :status 404}))
