@@ -4,5 +4,6 @@
  :builds {:app {:target :browser
                 :output-dir "public/js"
                 :asset-path "/js"
-                :modules {:app {:entries [user]}}}}
+                :modules {:app {:entries [user]}}
+                :compiler-options {:output-feature-set :es6}}}
  :dev-http {8888 "public"}}

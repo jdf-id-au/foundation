@@ -139,12 +139,13 @@
 
 (defn server!
   "Set up http+websocket server using talk.api/server!
-   Deactivate ws by passing {:ws-path nil} in opts.
    Format in/out text ws chans with transit and dispatch messages via message/receive.
    TODO Format req/res guided by headers and dispatch reqs via message/handler (from http path via bidi).
    TODO Provide some auth mechanism for application to use!"
   [routes port & opts]
-  (let [{:keys [clients] :as server} (-> (apply talk/server! port opts) (assoc :routes routes))
+  (let [ws-path (bidi/path-for routes :ws)
+        server (-> (apply talk/server! port (cond-> opts ws-path (assoc :ws-path ws-path)))
+                   (assoc :routes routes))
         _ (go-loop [msg (<! (server :in))]
             (if msg
               (do (try (receive msg server) ; NB currently sequential and blocking go; think about async/thread but unclear what if anything limits size of its thread pool

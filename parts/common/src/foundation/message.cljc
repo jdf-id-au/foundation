@@ -61,7 +61,7 @@
 
 (defmulti ->server first)
 (message :auth ->server :user string? :password string?) ; NB don't have cleartext password
-(message :binary ->server :data bytes?)
+(message :binary ->server :data #?(:clj bytes? :cljs #(instance? js/UInt8Array %)))
 #_(message :init ->server)
 (s/def ::->server (s/multi-spec ->server retag))
 

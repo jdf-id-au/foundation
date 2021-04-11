@@ -1,6 +1,11 @@
 (ns foundation.server.http
   (:require [clojure.core.async :as async :refer [>!!]]
-            [taoensso.timbre :as log]))
+            [taoensso.timbre :as log]
+            [clojure.java.io :as io]
+            [comfort.io :as cio])
+  (:import (java.nio.file Path)
+           (java.net URLConnection)
+           (java.io File)))
   ;[yada.yada :as yada]
   ;[yada.handler]
   ;[aleph.http :as http]
@@ -84,3 +89,29 @@
 (defmethod handler :default [{:keys [channel] :as request} {:keys [out] :as server}]
   (log/debug "No handler for request" request)
   (async/put! out {:channel channel :status 404}))
+
+(def content-types
+  {:html "text/html"
+   :css "text/css"
+   :js "text/javascript"
+   :jpg "image/jpeg"
+   :png "image/png"
+   :gif "image/gif"})
+
+(defmethod handler ::file [{:keys [channel method path headers] :as request}
+                           {:keys [out] :as server}]
+  (log/debug "handling path" path)
+  (case method
+    :get
+    (if-let [^File safe-local (cio/safe-subpath "public"
+                                (case path "/" "index.html" path))] ; deliberately hardcoded "public/"
+      ; URLConnection/guessContentTypeFromName doesn't have .js !
+      (if-let [content-type (-> safe-local cio/get-extension keyword content-types)]
+        (async/put! out {:channel channel :status 200
+                         ; TOOD parse :accept header (without bringing in a million deps)
+                         ; https://tools.ietf.org/html/rfc7231#section-5.3.2
+                         :headers {:content-type content-type}
+                         :content safe-local})
+        (async/put! out {:channel channel :status 404}))
+      (async/put! out {:channel channel :status 404}))
+    (async/put! out {:channel channel :status 405})))
