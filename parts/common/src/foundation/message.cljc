@@ -35,8 +35,7 @@
                       reader (transit/reader in :json read-handlers)]
                   (transit/read reader))
                 (catch Exception e
-                  ;(log/warn "Invalid message" json (.getMessage e))
-                  :invalid-message))
+                  (log/warn "Invalid message:" json "because:" (.getMessage e))))
      :cljs (transit/read (transit/reader :json read-handlers) json)))
 ; TODO catch js errors
 
@@ -72,7 +71,7 @@
   (let [v (s/conform spec msg)]
     #_(log/debug "Conforming incoming message" msg v)
     #_(def debug-incoming msg)
-    (case v ::s/invalid (log/error "Invalid incoming message" msg) v)))
+    (case v ::s/invalid (log/warn "Invalid incoming message" msg) v)))
 
 (defn validate
   "Validate outgoing message according to (directional) spec."

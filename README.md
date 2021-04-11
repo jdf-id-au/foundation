@@ -19,14 +19,15 @@ Pursues [Jamstack](https://jamstack.org/) concept, with statically served client
 
 ### Common: `jdf/foundation-common`
 - cross-platform messaging/extra functions incl time conveniences from [jdf/temper](https://github.com/jdf-id-au/temper)
-- TODO communication over [transit](https://github.com/cognitect/transit-format)
-- TODO validated ws messages via [spec](https://clojure.org/about/spec)
+- communication over [transit](https://github.com/cognitect/transit-format)
+- validated ws messages via [spec](https://clojure.org/about/spec)
 
 ### Server: `jdf/foundation-server`
 - config system integrated with cli
-- TODO websocket communication option (using [jdf/talk](https://github.com/jdf-id-au/talk))
+- built on [jdf/talk](https://github.com/jdf-id-au/talk)
+- typed http messages TODO json or transit dependnig on headers
+- websocket messages 
 - TODO limited file serving for convenience (better to serve static client with dedicated webserver like [nginx](https://www.nginx.com/))
-- TODO ability to serve generated json etc (not just transit) to support conventional ReST
 
 [comment]: <> (- [recaptcha]&#40;https://www.google.com/recaptcha/&#41; support)
 [comment]: <> (- [nonce]&#40;https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src &#41; and [CSP]&#40;https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP&#41; support)

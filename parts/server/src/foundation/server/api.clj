@@ -79,17 +79,14 @@
 (def conform (partial fm/conform ::fm/->server))
 (def validate (partial fm/validate ::fm/->client))
 
-; TODO *** sort this out... user should be able to do different interactions on different channels
-; consider passing whole server map through to application??
-; help with transit coding
-; auth by updating server :clients map
 (defprotocol Receive
   (receive [this server]))
 (extend-protocol Receive
   Connection
   (receive [{:keys [channel state]} {:keys [clients] :as server}]
     (let [{:keys [username addr] :as client-meta} (get @clients channel)]
-      ; Possible because clients map updated before connection and after disconnection
+      ; Should be possible because clients map updated before connection and after disconnection?
+      ; Unless async means meta's already gone. FIXME
       (log/info (or username "unknown")
         (case state :http "connected to" :ws "upgraded to ws on" nil "disconnected from")
         channel (when state (str "from " addr)))))
@@ -105,8 +102,7 @@
         (:get :delete) (fsh/handler req+route server)
         (:post :put :patch) (swap! clients assoc-in [channel :upload] (assoc req+route :parts []))
         (:head :options :trace) (log/warn "Ignored HTTP" (name method) "request:" this)
-        (log/error "Unsupported HTTP method" (name method) "in" this))))
-  ; TODO roll up Attribute, File and Trail into map for application? Or just send as messages?
+        (log/error "Unsupported HTTP method" (name method) "in:" this))))
   Attribute
   (receive [{:keys [channel] :as this} {:keys [clients]}]
     ; TODO decode with ref to headers? e.g. application/transit+json
@@ -123,7 +119,7 @@
     (cleanup))
   Text
   (receive [{:keys [channel text] :as this} server]
-    (if-let [conformed (-> text <-transit conform)]
+    (when-let [conformed (-> text <-transit conform)]
       (fm/receive (assoc conformed ::channel channel) server)))
   Binary
   (receive [{:keys [channel data] :as this} server]
@@ -143,11 +139,12 @@
 
 (defn server!
   "Set up http+websocket server using talk.api/server!
+   Deactivate ws by passing {:ws-path nil} in opts.
    Format in/out text ws chans with transit and dispatch messages via message/receive.
    TODO Format req/res guided by headers and dispatch reqs via message/handler (from http path via bidi).
    TODO Provide some auth mechanism for application to use!"
-  [routes & args]
-  (let [{:keys [clients] :as server} (-> (apply talk/server! args) (assoc :routes routes))
+  [routes port & opts]
+  (let [{:keys [clients] :as server} (-> (apply talk/server! port opts) (assoc :routes routes))
         _ (go-loop [msg (<! (server :in))]
             (if msg
               (do (try (receive msg server) ; NB currently sequential and blocking go; think about async/thread but unclear what if anything limits size of its thread pool
@@ -164,4 +161,4 @@
                   (recur (<! out)))
               (log/warn "Tried to read from closed application out chan")))]
     (-> server (dissoc :in) (assoc :out out))))
-  ; TODO send Text or Binary to all user's ws connections, but response only to Request channel!
+  ; TODO [in application] send Text or Binary to all user's ws connections, but response only to Request channel!
