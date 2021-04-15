@@ -8,28 +8,19 @@
             [clojure.core.async :as async :refer [chan go go-loop thread >! <! >!! <!! alt! timeout]]
             [taoensso.timbre :as log]))
 
-(defn send!
-  "Send `msg` to connected `user`s over their registered websocket/s.
+#_(defn send!
+    "Send `msg` to connected `user`s over their registered websocket/s.
    See `f.common.message` specs."
-  [out user-msg-map]
-  ; FIXME only outer is async! inside will block from one user to the next!? try `put!`?
-  (go (doseq [[username msg] user-msg-map
-              :let [[type & _ :as validated]
-                    (or (fs/validate msg) [:error :outgoing "Problem generating server reply." msg])]]
-        (when (= type :error) (log/warn "Telling" username "about server error" msg))
-        (when-not (>! out [username validated])
-          (log/error "Dropped outgoing message to" username
-            "because application out chan is closed" msg)))))
+    [out user-msg-map]
+    ; FIXME only outer is async! inside will block from one user to the next!? try `put!`?
+    (go (doseq [[username msg] user-msg-map
+                :let [[type & _ :as validated]
+                      (or (fs/validate msg) [:error :outgoing "Problem generating server reply." msg])]]
+          (when (= type :error) (log/warn "Telling" username "about server error" msg))
+          (when-not (>! out [username validated])
+            (log/error "Dropped outgoing message to" username
+              "because application out chan is closed" msg)))))
         ; TODO catch exceptions?
-
-(defn auth [clients channel username]
-  (swap! clients cc/update-if-present channel
-    (fn [{existing :username :keys [addr] :as client-meta}]
-      (if (and existing (not= existing username))
-        (log/error "Websocket already associated with different user!" existing "vs" username addr)
-        (do (assoc client-meta :username username)
-            (log/info "authenticated" username "at" addr))))))
-; TODO rely on ws (over tls!) integrity for authentication? i.e. no tokens? can wss be hijacked on client side?
 
 #_ (defn auth "Example application auth fn."
      [unauth clients]

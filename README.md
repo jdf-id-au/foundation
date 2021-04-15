@@ -27,7 +27,8 @@ Pursues [Jamstack](https://jamstack.org/) concept, with statically served client
 - built on [jdf/talk](https://github.com/jdf-id-au/talk)
 - typed http messages TODO json or transit dependnig on headers
 - websocket messages 
-- TODO limited file serving for convenience (better to serve static client with dedicated webserver like [nginx](https://www.nginx.com/))
+- limited file serving for convenience (better to serve static client with dedicated webserver like [nginx](https://www.nginx.com/))
+- relies on reverse proxy for TLS
 
 [comment]: <> (- [recaptcha]&#40;https://www.google.com/recaptcha/&#41; support)
 [comment]: <> (- [nonce]&#40;https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src &#41; and [CSP]&#40;https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP&#41; support)

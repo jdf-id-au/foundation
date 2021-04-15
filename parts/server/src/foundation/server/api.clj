@@ -12,11 +12,13 @@
             [foundation.server.http :as fsh]
             [clojure.java.io :as io]
             [talk.api :as talk]
+            [talk.ws :refer [->Text]]
+            [talk.util :refer [ess]]
             [clojure.core.async :as async :refer [chan go go-loop >! <! >!! <!!]]
             [bidi.bidi :as bidi])
   (:import (talk.http Connection Request Attribute File Trail)
-           (talk.ws Text Binary))
-  (:refer-clojure :exclude [send]))
+           (talk.ws Text Binary)
+           (clojure.lang APersistentMap)))
 
 ; Administration
 
@@ -80,7 +82,7 @@
 (def validate (partial fm/validate ::fm/->client))
 
 (defprotocol Receive
-  (receive [this server]))
+  (receive [this server] "Receive typed message from talk server."))
 (extend-protocol Receive
   Connection
   (receive [{:keys [channel state]} {:keys [clients] :as server}]
@@ -89,7 +91,7 @@
       ; Unless async means meta's already gone. FIXME
       (log/info (or username "unknown")
         (case state :http "connected to" :ws "upgraded to ws on" nil "disconnected from")
-        channel (when state (str "from " addr)))))
+        (ess channel) (when state (str "from " addr)))))
   Request
   (receive [{:keys [channel method path handler route-params parts] :as this}
             {:keys [routes clients] :as server}]
@@ -112,7 +114,6 @@
     (swap! clients update-in [channel :upload :parts] conj this))
   Trail ; NB relying on this ALWAYS appearing with PUT/POST/PATCH
   (receive [{:keys [channel cleanup] :as this} {:keys [clients] :as server}]
-    ; NB problem is it seems to come across with plain GET too...
     (when-let [upload (get-in @clients [channel :upload])]
       (fsh/handler (update upload :parts conj this) server)
       (swap! clients update channel dissoc :upload))
@@ -126,16 +127,32 @@
     (if-let [conformed (conform [:binary data])]
       (fm/receive (assoc conformed ::channel channel) server))))
 
-(defprotocol Send
-  (send [this server]))
-(extend-protocol Send
+(defprotocol send!
+  (send! [this server] "Send typed message to talk server."))
+(extend-protocol send!
   Text
-  (send [{:keys [channel text] :as this} {:keys [out] :as server}]
-    (if-let [val+enc (some-> text validate ->transit)]
-      (async/put! out (assoc this :text val+enc))))
+  (send! [{:keys [channel text] :as this} {:keys [out clients]}]
+    (let [to-user (get-in @clients [channel :username] (ess channel))
+          [type & _ :as validated]
+          (or (validate text) [:error :outgoing "Problem generating server reply." text])]
+      (when (= type :error) (log/warn "Telling" to-user "about server error" msg))
+      (async/put! out (->Text channel (->transit validated)))))
   Binary
-  (send [this {:keys [out] :as server}]
-    (async/put! out this)))
+  (send! [this {:keys [out]}]
+    (async/put! out this))
+  APersistentMap ; {"username" [:message :to :validate]}
+  (send! [this {:keys [clients] :as server}]
+    ; This is for sending ws messages to users, no matter how many connections they have.
+    ; Will be validated and encoded to transit. Binary not supported yet.
+    (doseq
+      [[to-user msg] this
+       channel (reduce (fn [agg [ch {:keys [type username]}]]
+                         (if (and (= type :ws) (= username to-user))
+                           (conj agg username)
+                           agg))
+                 #{}
+                 @clients)]
+      (send! (->Text channel msg) server))))
 
 (defn server!
   "Set up http+websocket server using talk.api/server!
@@ -156,10 +173,10 @@
         out (chan) ; only deals with websocket because http response is async/put! from handler
         _ (go-loop [msg (<! out)]
             (if msg
-              (do (try (send msg server)
+              (do (try (send! msg server) ; TODO catch closed out chan etc
                        (catch Exception e
                          (log/error "Error handling outgoing message" msg e)))
                   (recur (<! out)))
               (log/warn "Tried to read from closed application out chan")))]
     (-> server (dissoc :in) (assoc :out out))))
-  ; TODO [in application] send Text or Binary to all user's ws connections, but response only to Request channel!
+  ; TODO [in application] send! Text or Binary to all user's ws connections, but response only to Request channel!

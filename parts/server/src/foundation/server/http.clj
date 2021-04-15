@@ -4,7 +4,6 @@
             [clojure.java.io :as io]
             [comfort.io :as cio])
   (:import (java.nio.file Path)
-           (java.net URLConnection)
            (java.io File)))
   ;[yada.yada :as yada]
   ;[yada.handler]
@@ -105,7 +104,6 @@
     :get
     (if-let [^File safe-local (cio/safe-subpath "public"
                                 (case path "/" "index.html" path))] ; deliberately hardcoded "public/"
-      ; URLConnection/guessContentTypeFromName doesn't have .js !
       (if-let [content-type (some-> safe-local cio/get-extension keyword content-types)]
         (async/put! out {:channel channel :status 200
                          ; TOOD parse :accept header (without bringing in a million deps)

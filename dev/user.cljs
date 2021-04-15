@@ -31,7 +31,8 @@
           (for [s eg-sub]
             ($ :li {:key s} s)))
         ($ :div (tm/format "HH:mm dd MMM yyyy" (tm/now)))
-        ($ :button {:on-click #(click "argument")} "click me"))))
+        ($ :button {:on-click #(click "argument")} "click me")
+        ($ :img {:src "background.png"}))))
 
 (defn ^:dev/after-load start-up []
   (f/start! {:root-component app
