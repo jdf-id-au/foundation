@@ -2,7 +2,7 @@
   (:require [comfort.core :as cc]
             [taoensso.timbre :as log]))
 
-(defn authenticate [clients channel username]
+(defn login [clients channel username]
   (swap! clients cc/update-if-present channel
     (fn [{existing :username :keys [addr] :as client-meta}]
       (if (and existing (not= existing username))
@@ -12,5 +12,7 @@
 
 ; TODO token/header incl for ws
 
-(defn deauthenticate [clients channel]
+(defn logout [clients channel]
   (swap! clients cc/update-if-present channel dissoc :username))
+
+(defn authenticate [username password])

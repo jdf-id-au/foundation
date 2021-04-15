@@ -18,8 +18,10 @@
 (fl/configure :debug)
 
 #_ (client!)
-#_(def s (api/server! ["" [["/" {"hello" :hello
-                                 "ws" :ws}]
-                           [true ::http/file]]] ; catchall
-           8126))
+#_(def s (api/server! 8126
+           ["" [["/" {"hello" :hello
+                      "login" ::http/login
+                      "logout" ::http/logout
+                      "ws" ::api/ws}]
+                [true ::http/file]]])) ; catchall
 #_ ((:close s))

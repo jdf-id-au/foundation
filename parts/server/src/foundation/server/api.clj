@@ -18,7 +18,9 @@
             [bidi.bidi :as bidi])
   (:import (talk.http Connection Request Attribute File Trail)
            (talk.ws Text Binary)
-           (clojure.lang APersistentMap)))
+           (clojure.lang APersistentMap)
+           (java.nio.charset Charset)
+           (java.nio ByteBuffer)))
 
 ; Administration
 
@@ -96,27 +98,29 @@
   (receive [{:keys [channel method path handler route-params parts] :as this}
             {:keys [routes clients] :as server}]
     #_(assert (not (or handler route-params parts)))
-    (assert (nil? (get-in clients [channel :upload])) "Unprocessed upload at time of new request")
+    (assert (nil? (get-in clients [channel :body])) "Unprocessed body at time of new request")
     ;(log/debug "Received" this)
     ;(log/debug "Matching" (bidi/match-route routes path))
     (let [req+route (merge this (bidi/match-route routes path))]
       (case method
         (:get :delete) (fsh/handler req+route server)
-        (:post :put :patch) (swap! clients assoc-in [channel :upload] (assoc req+route :parts []))
+        (:post :put :patch) (swap! clients assoc-in [channel :body] (assoc req+route :parts []))
         (:head :options :trace) (log/warn "Ignored HTTP" (name method) "request:" this)
         (log/error "Unsupported HTTP method" (name method) "in:" this))))
   Attribute
-  (receive [{:keys [channel] :as this} {:keys [clients]}]
-    ; TODO decode with ref to headers? e.g. application/transit+json
-    (swap! clients update-in [channel :upload :parts] conj this))
+  (receive [{:keys [channel name ^Charset charset file? value] :as this} {:keys [clients]}]
+    (swap! clients update-in [channel :body :parts] conj this
+      ; TODO need protocol for reading attributes easily (or broader handler for :body)
+      #_(if file? this
+                  (->> value ByteBuffer/wrap (.decode charset)))))
   File
   (receive [{:keys [channel] :as this} {:keys [clients]}]
-    (swap! clients update-in [channel :upload :parts] conj this))
+    (swap! clients update-in [channel :body :parts] conj this))
   Trail ; NB relying on this ALWAYS appearing with PUT/POST/PATCH
   (receive [{:keys [channel cleanup] :as this} {:keys [clients] :as server}]
-    (when-let [upload (get-in @clients [channel :upload])]
-      (fsh/handler (update upload :parts conj this) server)
-      (swap! clients update channel dissoc :upload))
+    (when-let [body (get-in @clients [channel :body])]
+      (fsh/handler (update body :parts conj this) server)
+      (swap! clients update channel dissoc :body))
     (cleanup))
   Text
   (receive [{:keys [channel text] :as this} server]
@@ -131,36 +135,36 @@
   (send! [this server] "Send typed message to talk server."))
 (extend-protocol send!
   Text
-  (send! [{:keys [channel text] :as this} {:keys [out clients]}]
-    (let [to-user (get-in @clients [channel :username] (ess channel))
-          [type & _ :as validated]
-          (or (validate text) [:error :outgoing "Problem generating server reply." text])]
-      (when (= type :error) (log/warn "Telling" to-user "about server error" msg))
-      (async/put! out (->Text channel (->transit validated)))))
+  (send! [this {:keys [out]}]
+    (async/put! out this))
   Binary
   (send! [this {:keys [out]}]
     (async/put! out this))
   APersistentMap ; {"username" [:message :to :validate]}
   (send! [this {:keys [clients] :as server}]
     ; This is for sending ws messages to users, no matter how many connections they have.
-    ; Will be validated and encoded to transit. Binary not supported yet.
+    ; Will be validated and encoded to transit.
+    ; Binary not supported yet -- send directly to channel.
     (doseq
       [[to-user msg] this
+       :let [[type & _ :as validated]
+             (or (validate msg) [:error :outgoing "Problem generating server reply." msg])
+             _ (when (= type :error) (log/warn "Telling" to-user "about server error" msg))]
        channel (reduce (fn [agg [ch {:keys [type username]}]]
                          (if (and (= type :ws) (= username to-user))
                            (conj agg username)
                            agg))
                  #{}
                  @clients)]
-      (send! (->Text channel msg) server))))
+      (send! (->Text channel (->transit validated)) server))))
 
 (defn server!
   "Set up http+websocket server using talk.api/server!
    Format in/out text ws chans with transit and dispatch messages via message/receive.
    TODO Format req/res guided by headers and dispatch reqs via message/handler (from http path via bidi).
    TODO Provide some auth mechanism for application to use!"
-  [routes port & opts]
-  (let [ws-path (bidi/path-for routes :ws)
+  [port routes & opts]
+  (let [ws-path (bidi/path-for routes ::ws)
         server (-> (apply talk/server! port (cond-> opts ws-path (assoc :ws-path ws-path)))
                    (assoc :routes routes))
         _ (go-loop [msg (<! (server :in))]

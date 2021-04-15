@@ -14,6 +14,8 @@
   ;[buddy.core.nonce :as nonce]
   ;  (:import (org.bouncycastle.util.encoders Hex)))
 
+; This can wait -- prioritise viz/local!
+
 ; Recaptcha
 
 ;(defn recaptcha!
@@ -114,3 +116,15 @@
         (async/put! out {:channel channel :status 404}))
       (async/put! out {:channel channel :status 404}))
     (async/put! out {:channel channel :status 405})))
+
+(defmethod handler ::login [{:keys [channel method headers body] :as request}
+                            {:keys [out] :as server}]
+  (let [{:keys []} headers]
+    (case method
+      :post ; try application/x-www-form-urlencoded (i.e. not transit)
+      ()
+      (async/put! out {:channel channel :status 405}))))
+
+
+(defmethod handler ::logout [{:keys [] :as request}
+                             {:keys [out] :as server}])

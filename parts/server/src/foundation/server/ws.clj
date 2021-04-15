@@ -8,6 +8,8 @@
             [clojure.core.async :as async :refer [chan go go-loop thread >! <! >!! <!! alt! timeout]]
             [taoensso.timbre :as log]))
 
+; This can all go!
+
 #_(defn send!
     "Send `msg` to connected `user`s over their registered websocket/s.
    See `f.common.message` specs."
