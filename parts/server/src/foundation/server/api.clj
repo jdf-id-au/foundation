@@ -83,14 +83,12 @@
 (def conform (partial fm/conform ::fm/->server))
 (def validate (partial fm/validate ::fm/->client))
 
-(defprotocol Receive
+(defprotocol Receivable
   (receive [this server] "Receive typed message from talk server."))
-(extend-protocol Receive
+(extend-protocol Receivable
   Connection
   (receive [{:keys [channel state]} {:keys [clients] :as server}]
-    (let [{:keys [username addr] :as client-meta} (get @clients channel)]
-      ; Should be possible because clients map updated before connection and after disconnection?
-      ; Unless async means meta's already gone. FIXME
+    (let [{:keys [username addr]} (get clients channel)] ; TODO check if destructuring works on wrapped
       (log/info (or username "unknown")
         (case state :http "connected to" :ws "upgraded to ws on" nil "disconnected from")
         (ess channel) (when state (str "from " addr)))))
@@ -104,23 +102,23 @@
     (let [req+route (merge this (bidi/match-route routes path))]
       (case method
         (:get :delete) (fsh/handler req+route server)
-        (:post :put :patch) (swap! clients assoc-in [channel :body] (assoc req+route :parts []))
+        (:post :put :patch) (assoc-in clients [channel :body] (assoc req+route :parts []))
         (:head :options :trace) (log/warn "Ignored HTTP" (name method) "request:" this)
         (log/error "Unsupported HTTP method" (name method) "in:" this))))
   Attribute
   (receive [{:keys [channel name ^Charset charset file? value] :as this} {:keys [clients]}]
-    (swap! clients update-in [channel :body :parts] conj this
+    (update-in clients [channel :body :parts] conj this
       ; TODO need protocol for reading attributes easily (or broader handler for :body)
       #_(if file? this
                   (->> value ByteBuffer/wrap (.decode charset)))))
   File
   (receive [{:keys [channel] :as this} {:keys [clients]}]
-    (swap! clients update-in [channel :body :parts] conj this))
+    (update-in clients [channel :body :parts] conj this))
   Trail ; NB relying on this ALWAYS appearing with PUT/POST/PATCH
   (receive [{:keys [channel cleanup] :as this} {:keys [clients] :as server}]
-    (when-let [body (get-in @clients [channel :body])]
+    (when-let [body (get-in clients [channel :body])]
       (fsh/handler (update body :parts conj this) server)
-      (swap! clients update channel dissoc :body))
+      (update clients channel dissoc :body))
     (cleanup))
   Text
   (receive [{:keys [channel text] :as this} server]
@@ -131,9 +129,9 @@
     (if-let [conformed (conform [:binary data])]
       (fm/receive (assoc conformed ::channel channel) server))))
 
-(defprotocol send!
+(defprotocol Sendable
   (send! [this server] "Send typed message to talk server."))
-(extend-protocol send!
+(extend-protocol Sendable
   Text
   (send! [this {:keys [out]}]
     (async/put! out this))
@@ -155,7 +153,7 @@
                            (conj agg username)
                            agg))
                  #{}
-                 @clients)]
+                 clients)]
       (send! (->Text channel (->transit validated)) server))))
 
 (defn server!
