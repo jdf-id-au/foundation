@@ -91,7 +91,7 @@
             See specs."
            (fn dispatch [{:keys [type]} server] type))
            ; TODO validate user
-   :cljs (defmulti receive ; TODO *** implement (ws and ajax)
+   :cljs (defmulti receive
            "Called by the `f.client.connection/receive` defevent without coeffects.
             If a particular receive method needs coeffects, it can call another defevent itself.
             This inner defevent will return nil, and cause f.c.c/receive to do nothing further."

@@ -4,7 +4,7 @@
             [foundation.server.api :as api]
             [foundation.server.http :as http]
             [foundation.logging :as fl]
-            [shared]
+            [common]
             [foundation.message :as message]
             [clojure.core.async :as async]
             [taoensso.timbre :as log]))
@@ -24,11 +24,9 @@
     :get (async/put! out {:channel channel :status 200 :headers {:content-type "text/plain"}
                           :content "hello"})
     :post
-    (do
-      (async/put! out {:channel channel :status 102}) ; approve upload
-      (async/put! out {:channel channel :status 200
-                       :headers {:content-type "application/transit+json"}
-                       :content (-> [:pong :yay "really"] api/validate message/->transit)}))
+    (async/put! out {:channel channel :status 200
+                     :headers {:content-type "application/transit+json"}
+                     :content (-> [:pong :yay "really"] api/validate message/->transit)})
     (async/put! out {:channel channel :status 405})))
 
 (defn cljs "Start cljs repl." [] (shadow/repl :app))

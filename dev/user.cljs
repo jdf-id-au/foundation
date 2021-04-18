@@ -3,7 +3,7 @@
    Presented at http://localhost:8888/index.html (see shadow-cljs.edn)"
   (:require [helix.core :refer [defnc $ <>]]
             ["react-dom" :refer [render]]
-            [shared]
+            [common]
             [foundation.client.api :as f]
             [foundation.client.config :as config]
             [tick.alpha.api :as t]

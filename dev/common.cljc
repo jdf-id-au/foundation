@@ -1,4 +1,4 @@
-(ns shared
+(ns common
   (:require [foundation.message :refer [message ->server ->client]]
             #?@ (:clj  [[clojure.spec.alpha :as s]]
                  :cljs [[cljs.spec.alpha :as s]])))

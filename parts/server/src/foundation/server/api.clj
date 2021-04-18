@@ -97,7 +97,7 @@
   (present [_])
   Request
   (receive [{:keys [channel method path handler route-params parts] :as this}
-            {:keys [routes clients] :as server}]
+            {:keys [routes clients out] :as server}]
     #_(assert (not (or handler route-params parts)))
     (assert (nil? (get-in clients [channel :body])) "Unprocessed body at time of new request")
     ;(log/debug "Received" this)
@@ -105,7 +105,9 @@
     (let [req+route (merge this (bidi/match-route routes path))]
       (case method
         (:get :delete) (fsh/handler req+route server)
-        (:post :put :patch) (assoc-in clients [channel :body] (assoc req+route :parts []))
+        (:post :put :patch)
+        (do (assoc-in clients [channel :body] (assoc req+route :parts []))
+            (async/put! out {:channel channel :status 102})) ; permit upload
         (:head :options :trace) (log/warn "Ignored HTTP" (name method) "request:" this)
         (log/error "Unsupported HTTP method" (name method) "in:" this))))
   (present [this] this)
