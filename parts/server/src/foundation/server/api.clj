@@ -20,7 +20,8 @@
            (talk.ws Text Binary)
            (clojure.lang APersistentMap)
            (java.nio.charset Charset)
-           (java.nio ByteBuffer)))
+           (java.nio ByteBuffer)
+           (java.io FileReader ByteArrayInputStream FileInputStream)))
 
 ; Administration
 
@@ -84,14 +85,16 @@
 (def validate (partial fm/validate ::fm/->client))
 
 (defprotocol Receivable
-  (receive [this server] "Receive typed message from talk server."))
+  (receive [this server] "Receive typed message from talk server.")
+  (present [this] "Convert to practical representation."))
 (extend-protocol Receivable
   Connection
   (receive [{:keys [channel state]} {:keys [clients] :as server}]
-    (let [{:keys [username addr]} (get clients channel)] ; TODO check if destructuring works on wrapped
+    (let [{:keys [username addr]} (get clients channel)]
       (log/info (or username "unknown")
         (case state :http "connected to" :ws "upgraded to ws on" nil "disconnected from")
         (ess channel) (when state (str "from " addr)))))
+  (present [_])
   Request
   (receive [{:keys [channel method path handler route-params parts] :as this}
             {:keys [routes clients] :as server}]
@@ -105,80 +108,96 @@
         (:post :put :patch) (assoc-in clients [channel :body] (assoc req+route :parts []))
         (:head :options :trace) (log/warn "Ignored HTTP" (name method) "request:" this)
         (log/error "Unsupported HTTP method" (name method) "in:" this))))
+  (present [this] this)
   Attribute
-  (receive [{:keys [channel name ^Charset charset file? value] :as this} {:keys [clients]}]
-    (update-in clients [channel :body :parts] conj this
-      ; TODO need protocol for reading attributes easily (or broader handler for :body)
-      #_(if file? this
-                  (->> value ByteBuffer/wrap (.decode charset)))))
+  (receive [{:keys [channel] :as this} {:keys [clients]}]
+    (update-in clients [channel :body :parts] conj this))
+  (present [{:keys [name ^Charset charset file? value] :as this}]
+    {name (if file?
+            (FileReader. ^java.io.File value charset)
+            (->> value ByteBuffer/wrap (.decode charset)))})
   File
   (receive [{:keys [channel] :as this} {:keys [clients]}]
     (update-in clients [channel :body :parts] conj this))
+  (present [{:keys [name filename ^Charset charset content-type file? value]}]
+    (let [binary? (= content-type "application/octet-stream")]
+      {[name filename] (if file?
+                         (if binary?
+                           (FileInputStream. ^java.io.File value)
+                           (FileReader. ^java.io.File value charset))
+                         (if binary?
+                           value
+                           (->> value ByteBuffer/wrap (.decode charset))))}))
   Trail ; NB relying on this ALWAYS appearing with PUT/POST/PATCH
   (receive [{:keys [channel cleanup] :as this} {:keys [clients] :as server}]
     (when-let [body (get-in clients [channel :body])]
       (fsh/handler (update body :parts conj this) server)
       (update clients channel dissoc :body))
     (cleanup))
+  (present [_])
   Text
   (receive [{:keys [channel text] :as this} server]
     (when-let [conformed (-> text <-transit conform)]
       (fm/receive (assoc conformed ::channel channel) server)))
+  (present [{:keys [text]}] (->> text <-transit (fm/validate ::fm/->server)))
   Binary
   (receive [{:keys [channel data] :as this} server]
     (if-let [conformed (conform [:binary data])]
-      (fm/receive (assoc conformed ::channel channel) server))))
+      (fm/receive (assoc conformed ::channel channel) server)))
+  (present [{:keys [data]}] data))
 
 (defprotocol Sendable
   (send! [this server] "Send typed message to talk server."))
 (extend-protocol Sendable
   Text
   (send! [this {:keys [out]}]
-    (async/put! out this))
+    (when-not (async/put! out this)
+      (log/warn "Dropped outgoing message because application out chan is closed" (str this))))
   Binary
   (send! [this {:keys [out]}]
-    (async/put! out this))
+    (when-not (async/put! out this)
+      (log/warn "Dropped outgoing message because application out chan is closed" (str this))))
   APersistentMap ; {"username" [:message :to :validate]}
   (send! [this {:keys [clients] :as server}]
     ; This is for sending ws messages to users, no matter how many connections they have.
-    ; Will be validated and encoded to transit.
     ; Binary not supported yet -- send directly to channel.
     (doseq
       [[to-user msg] this
        :let [[type & _ :as validated]
              (or (validate msg) [:error :outgoing "Problem generating server reply." msg])
+             transit (->transit validated)
              _ (when (= type :error) (log/warn "Telling" to-user "about server error" msg))]
        channel (reduce (fn [agg [ch {:keys [type username]}]]
                          (if (and (= type :ws) (= username to-user))
-                           (conj agg username)
+                           (conj agg ch)
                            agg))
                  #{}
                  clients)]
-      (send! (->Text channel (->transit validated)) server))))
+      (send! (->Text channel transit) server))))
 
 (defn server!
   "Set up http+websocket server using talk.api/server!
    Format in/out text ws chans with transit and dispatch messages via message/receive.
    TODO Format req/res guided by headers and dispatch reqs via message/handler (from http path via bidi).
    TODO Provide some auth mechanism for application to use!"
-  [port routes & opts]
-  (let [ws-path (bidi/path-for routes ::ws)
-        server (-> (apply talk/server! port (cond-> opts ws-path (assoc :ws-path ws-path)))
-                   (assoc :routes routes))
-        _ (go-loop [msg (<! (server :in))]
-            (if msg
-              (do (try (receive msg server) ; NB currently sequential and blocking go; think about async/thread but unclear what if anything limits size of its thread pool
-                       (catch Exception e
-                         (log/error "Error handling incoming message" msg e)))
-                  (recur (<! (server :in))))
-              (log/warn "Tried to read from closed server in chan")))
-        out (chan) ; only deals with websocket because http response is async/put! from handler
-        _ (go-loop [msg (<! out)]
-            (if msg
-              (do (try (send! msg server) ; TODO catch closed out chan etc
-                       (catch Exception e
-                         (log/error "Error handling outgoing message" msg e)))
-                  (recur (<! out)))
-              (log/warn "Tried to read from closed application out chan")))]
-    (-> server (dissoc :in) (assoc :out out))))
-  ; TODO [in application] send! Text or Binary to all user's ws connections, but response only to Request channel!
+  ([port routes] (server! port routes nil))
+  ([port routes opts]
+   (let [ws-path (bidi/path-for routes ::ws)
+         server (-> (talk/server! port (cond-> opts ws-path (assoc :ws-path ws-path)))
+                    (assoc :routes routes))
+         _ (go-loop [msg (<! (server :in))]
+             (if msg
+               (do (try (receive msg server) ; NB currently sequential and blocking go; think about async/thread but unclear what if anything limits size of its thread pool
+                        (catch Exception e
+                          (log/error "Error handling incoming message" msg e)))
+                   (recur (<! (server :in))))
+               (log/warn "Tried to read from closed server in chan")))
+         out (chan) ; this chan is only for websocket because http response is async/put! from handler
+         _ (go-loop [msg (<! out)]
+             (if msg
+               (do (try (send! msg server) ; TODO catch closed out chan etc
+                        (catch Exception e
+                          (log/error "Error handling outgoing message" msg e)))
+                   (recur (<! out)))
+               (log/warn "Tried to read from closed application out chan")))]
+     (-> server (dissoc :in) (assoc :out out)))))

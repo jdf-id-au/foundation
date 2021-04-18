@@ -11,7 +11,7 @@
            (goog.net.WebSocket EventType))) ; != (goog.net EventType)
 
 (def conform (partial message/conform ::message/->client))
-(def validate (partial message/conform ::message/->server))
+(def validate (partial message/validate ::message/->server))
 
 (defevent receive message/receive)
 
@@ -76,13 +76,14 @@
 
 (defn post!
   "Ajax command"
-  [endpoint message]
+  [endpoint message] ; ARRGH not formatting correctly
+  (log/debug "Trying to send" message "to" endpoint)
   (ajax/POST (config/api endpoint)
              {:timeout (:timeout config/config)
               :handler ajax-handler
               :error-handler ajax-failer
-              :body (validate message)
-              :format ajax-request
+              :headers {:content-type "application/transit+json"}
+              :body (some-> message validate ->transit)
               :response-format ajax-response}))
 
 ; TODO could do delete!

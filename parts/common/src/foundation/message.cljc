@@ -44,7 +44,9 @@
 #?(:clj (defmacro message
           "Define spec method for a given message type and multimethod using `s/cat`.
            Message must be a vector starting with type keyword, optionally followed by
-           key/predicate pairs."
+           key/predicate pairs.
+
+           Must require [clojure... or [cljs.spec.alpha :as s] when this ns required/aliased elsewhere."
           ; Key-pred redundancy is interesting but won't factor out just yet.
           [type multi & catspec]
           (assert (not-any? #(= % '(:foundation.spec.api/channel)) (partition 1 2 catspec))
@@ -52,6 +54,7 @@
           `(defmethod ~multi ~type [~'_]
              ; I don't 100% understand why ~'s/cat works cross-platform, but it does!
              ; Unquoting (evaluating) a quoted symbol just gives the symbol, I think?
+             ; Need to require [<clojure or cljs>.spec.alpha :as s] if requiring this ns.
              (~'s/cat :type #{~type} ~@catspec))))
 
 (defmulti ->client first)
@@ -69,7 +72,7 @@
   "Conform incoming message according to (directional) spec."
   [spec msg]
   (let [v (s/conform spec msg)]
-    #_(log/debug "Conforming incoming message" msg v)
+    (log/debug "Conforming incoming message" msg v)
     #_(def debug-incoming msg)
     (case v ::s/invalid (log/warn "Invalid incoming message" msg) v)))
 

@@ -1,2 +1,4 @@
 {:dev {:host :site-local
-       :log-level :debug}}
+       :log-level :debug}
+ :port 8126 ; FIXME should work from :dev too
+ :tls false}

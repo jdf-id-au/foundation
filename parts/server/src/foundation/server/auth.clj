@@ -14,5 +14,3 @@
 
 (defn logout [clients channel]
   (swap! clients cc/update-if-present channel dissoc :username))
-
-(defn authenticate [username password])

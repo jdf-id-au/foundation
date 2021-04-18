@@ -3,7 +3,11 @@
             [shadow.cljs.devtools.api :as shadow]
             [foundation.server.api :as api]
             [foundation.server.http :as http]
-            [foundation.logging :as fl]))
+            [foundation.logging :as fl]
+            [shared]
+            [foundation.message :as message]
+            [clojure.core.async :as async]
+            [taoensso.timbre :as log]))
 
 (defn client! "Start shadow-cljs server with reload." []
   (server/start!)
@@ -13,15 +17,38 @@
   (server/stop!)
   (client!))
 
+(defmethod http/handler :hello [{:keys [channel method path headers] :as request}
+                                {:keys [out] :as server}]
+  (log/debug "hello handler for" request)
+  (case method
+    :get (async/put! out {:channel channel :status 200 :headers {:content-type "text/plain"}
+                          :content "hello"})
+    :post
+    (do
+      (async/put! out {:channel channel :status 102}) ; approve upload
+      (async/put! out {:channel channel :status 200
+                       :headers {:content-type "application/transit+json"}
+                       :content (-> [:pong :yay "really"] api/validate message/->transit)}))
+    (async/put! out {:channel channel :status 405})))
+
 (defn cljs "Start cljs repl." [] (shadow/repl :app))
 
 (fl/configure :debug)
 
-#_ (client!)
 #_(def s (api/server! 8126
            ["" [["/" {"hello" :hello
-                      "login" ::http/login
-                      "logout" ::http/logout
+                      ;"login" ::http/login
+                      ;"logout" ::http/logout
                       "ws" ::api/ws}]
-                [true ::http/file]]])) ; catchall
+                [true ::http/file]]]
+           {:allow-origin "http://localhost:8888"})) ; catchall
+
+; curl -v -X POST http://localhost:8126/hello -H "content-type:text/plain" -H "content-length: 0"
+; but getting invalid version format with ajax post **because chrome using ssl!
+
+#_ (client!) ; then visit http://localhost:8888/
+#_ (restart-client!)
+#_ (cljs)
+#_ :cljs/quit
+
 #_ ((:close s))

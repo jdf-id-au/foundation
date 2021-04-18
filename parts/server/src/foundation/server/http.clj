@@ -101,7 +101,7 @@
 
 (defmethod handler ::file [{:keys [channel method path headers] :as request}
                            {:keys [out] :as server}]
-  (log/debug "handling path" path)
+  ; TODO 304 semantics
   (case method
     :get
     (if-let [^File safe-local (cio/safe-subpath "public"
@@ -116,15 +116,3 @@
         (async/put! out {:channel channel :status 404}))
       (async/put! out {:channel channel :status 404}))
     (async/put! out {:channel channel :status 405})))
-
-(defmethod handler ::login [{:keys [channel method headers body] :as request}
-                            {:keys [out] :as server}]
-  (let [{:keys []} headers]
-    (case method
-      :post ; try application/x-www-form-urlencoded (i.e. not transit)
-      ()
-      (async/put! out {:channel channel :status 405}))))
-
-
-(defmethod handler ::logout [{:keys [] :as request}
-                             {:keys [out] :as server}])
