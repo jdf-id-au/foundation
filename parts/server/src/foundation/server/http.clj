@@ -86,7 +86,7 @@
 ;      (yada.handler/append-interceptor yada.security/security-headers add-csp)))
 
 (defmulti handler
-  (fn dispatch [{:keys [handler]} _] handler))
+  (fn dispatch [{:keys [handler] :as request} {:keys [out] :as server}] handler))
 (defmethod handler :default [{:keys [channel] :as request} {:keys [out] :as server}]
   (log/debug "No handler for request" request)
   (async/put! out {:channel channel :status 404}))
@@ -95,6 +95,8 @@
   {:html "text/html; charset=utf-8"
    :css "text/css; charset=utf-8"
    :js "text/javascript; charset=utf-8"
+   :csv "text/csv; charset=utf-8"
+   :json "application/json; charset=utf-8"
    :jpg "image/jpeg"
    :png "image/png"
    :gif "image/gif"})

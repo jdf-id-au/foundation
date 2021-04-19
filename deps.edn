@@ -1,5 +1,7 @@
 ; Testing and development of foundation
 
+; NB need to run clj -M:outdated (which is antq/antq) in each `part`
+
 {:paths ["src"]
  :deps {jdf/foundation-common {:local/root "parts/common"}
         jdf/foundation-server {:local/root "parts/server"}

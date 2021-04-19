@@ -52,10 +52,11 @@
 ;   :validate [#(s/valid? ::fs/allowed-origin %) "Invalid host."]])
 
 (defn roll-up
-  "Roll up relevant cli options into config (default: port and dry-run)."
+  "Roll up relevant cli options into config (always includes: port, dry-run, log-level)."
   [spec {:keys [config] :as options} & additional-keys]
-  (log/debug "Rolling up" spec "with" options "and" additional-keys)
-  (merge (fc/load spec config) (select-keys options (conj additional-keys :port :dry-run))))
+  (let [key-list (conj additional-keys :port :dry-run :log-level)]
+    (log/debug "Rolling up" spec "with" options "and" key-list)
+    (merge (fc/load spec config) (select-keys options key-list))))
 
 (defn validate-args
   [desc cli-options args]

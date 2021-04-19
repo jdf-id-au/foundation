@@ -19,7 +19,7 @@
 
 (defmethod http/handler :hello [{:keys [channel method path headers] :as request}
                                 {:keys [out] :as server}]
-  (log/debug "hello handler for" request)
+  #_(log/debug "hello handler for" request)
   (case method
     :get (async/put! out {:channel channel :status 200 :headers {:content-type "text/plain"}
                           :content "hello"})

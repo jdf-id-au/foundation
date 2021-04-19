@@ -1,10 +1,10 @@
 {:paths ["src"]
- :deps {org.clojure/clojurescript {:mvn/version "1.10.773"}
+ :deps {org.clojure/clojurescript {:mvn/version "1.10.844"}
 
         jdf/foundation-common {:local/root "../common"}
 
-        binaryage/oops {:mvn/version "0.7.0"}
+        binaryage/oops {:mvn/version "0.7.1"}
         lilactown/helix {:mvn/version "0.0.15"}
         ; {:git/url "https://github.com/Lokeh/helix.git" :sha ""}
         ; brings in transit
-        cljs-ajax/cljs-ajax {:mvn/version "0.8.0"}}}
+        cljs-ajax/cljs-ajax {:mvn/version "0.8.3"}}}

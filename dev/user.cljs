@@ -19,10 +19,10 @@
 (f/register :example '[:find [?n ...] :where [?e :name ?n]])
 
 (f/defevent click (fn [co msg] [[:clicked co msg]
-                                [:db [{:name (str (rand-int 100))}]]])
+                                [:db [{:name (str msg (rand-int 100))}]]])
                 :co)
 
-(f/defevent ping (fn [msg] [[:post "hello" [:ping :hello "there"]]]))
+(f/defevent ping (fn [msg] [[:post "hello" [:ping :hello msg]]]))
 
 (defmethod message/receive :pong [msg]
   (log/debug "Received" msg))
@@ -39,8 +39,7 @@
             ($ :li {:key s} s)))
         ($ :div (tm/format "HH:mm dd MMM yyyy" (tm/now)))
         ($ :button {:on-click #(click "argument")} "click me")
-        ($ :button {:on-click #(ping "server?")} "ping server")
-        ($ :img {:src "background.png"}))))
+        ($ :button {:on-click #(ping "server?")} "ping server"))))
 
 (defn ^:dev/after-load start-up []
   (f/start! {:root-component app

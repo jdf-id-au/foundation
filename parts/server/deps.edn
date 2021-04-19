@@ -1,12 +1,12 @@
 {:paths ["src" "resources"]
  :deps {org.clojure/clojure {:mvn/version "1.10.3"}
-        org.clojure/tools.cli {:mvn/version "1.0.194"}
-        org.clojure/data.json {:mvn/version "0.2.6"}
+        org.clojure/tools.cli {:mvn/version "1.0.206"}
+        org.clojure/data.json {:mvn/version "2.2.0"}
 
         jdf/foundation-common {:local/root "../common"}
 
         com.taoensso/timbre {:mvn/version "5.1.2"}
-        com.fzakaria/slf4j-timbre {:mvn/version "0.3.19"} ; redirect dependencies' slf4j requirements
+        com.fzakaria/slf4j-timbre {:mvn/version "0.3.21"} ; redirect dependencies' slf4j requirements
         org.slf4j/slf4j-api {:mvn/version "1.7.30"}
 
         jdf/talk {:local/root "../../../talk"}}}
