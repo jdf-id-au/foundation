@@ -2,15 +2,12 @@
   "Common basic functionality for web applications."
   (:require [clojure.spec.alpha :as s]
             [clojure.tools.cli :as cli]
-            [clojure.edn :as edn]
-            [clojure.data.json :as json]
             [taoensso.timbre :as log]
             [foundation.spec :as fs]
             [foundation.config :as fc]
             [foundation.logging :as fl]
             [foundation.message :as fm :refer [->transit <-transit]]
             [foundation.server.http :as fsh]
-            [clojure.java.io :as io]
             [talk.api :as talk]
             [talk.ws :refer [->Text]]
             [talk.util :refer [ess]]
@@ -21,7 +18,7 @@
            (clojure.lang APersistentMap)
            (java.nio.charset Charset)
            (java.nio ByteBuffer)
-           (java.io FileReader ByteArrayInputStream FileInputStream)))
+           (java.io FileReader FileInputStream)))
 
 ; Administration
 

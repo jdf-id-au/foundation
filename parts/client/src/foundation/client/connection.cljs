@@ -1,7 +1,9 @@
 (ns foundation.client.connection
   (:require [goog.events :refer [listen]]
             [goog.crypt.base64 :as b64]
-            [ajax.core :as ajax]
+            [cljs.core.async :as async :refer [alts!] :refer-macros [go alt!]]
+            [cljs.core.async.interop :refer [p->c] :refer-macros [<p!]]
+            [oops.core :refer [oget oset!]]
             [foundation.message :as message :refer [->transit <-transit]]
             [foundation.client.config :as config]
             [foundation.client.logging :as log]
@@ -23,7 +25,7 @@
     [[:db [{:app/state :<-> :online true}]]]
     [[:db [{:app/state :<-> :online false}]]]))
 
-(defonce -websocket
+(defonce -websocket ; TODO reimplement directly on js/WebSocket?
   (let [ws (WebSocket.)]
     (listen ws EventType.OPENED
             (fn [_]
@@ -56,35 +58,42 @@
 
 ; Ajax - validated on both sides ; TODO endpoint and params validation?
 
-(defn ajax-handler [response] (-> response conform receive))
-(defn ajax-failer [response] (log/error "Ajax error" response)) ; TODO tell user, see auth-failer
-(def ajax-response "Add transit handlers for tick classes."
-  (ajax/transit-response-format (assoc message/read-handlers :type :json)))
-(def ajax-request "Add transit handlers for tick classes."
-  (ajax/transit-request-format (assoc message/write-handlers :type :json)))
+(defn usp
+  "Clojure map -> URLSearchParams"
+  [params]
+  (reduce (fn [usp [k v]] (.append usp (name k) v))
+    (js/URLSearchParams.)
+    params))
+
+(defn fetch
+  "More ergonomic js/fetch"
+  [url {:keys [params headers] :as opts}]
+  (let [url (oset! (js/URL. url) "search" (usp params))]
+    (p->c (js/fetch url (-> (dissoc opts :params)
+                            (update :headers #(js/Headers. (clj->js %)))
+                            clj->js)))))
+
+(defn http! [method url opts]
+  (go (let [res-chan (fetch url (-> (assoc opts :method (name method) :mode "cors")
+                                    (update :headers assoc :accept "application/text+json")))
+            res (alt! res-chan ([v] v)
+                  ; TODO AbortController https://davidwalsh.name/cancel-fetch
+                  (async/timeout (:timeout config/config)) (ex-info "Timeout" {:error :timeout}))]
+        (-> (if (instance? cljs.core/ExceptionInfo res)
+              [:error :fetch "Fetch failed" res]
+              (case (oget res "status") 200 (-> res .text p->c <! <-transit)
+                                  [:error :fetch "Unsupported status" res]))
+            conform message/receive))))
 
 (defn get!
-  "Ajax query"
   ([endpoint] (get! endpoint {}))
   ([endpoint params]
-   (ajax/GET (config/api endpoint)
-             {:timeout (:timeout config/config)
-              :handler ajax-handler
-              :error-handler ajax-failer
-              :params params
-              :response-format ajax-response})))
+   (http! :get (config/api endpoint) {:params params})))
 
 (defn post!
-  "Ajax command"
-  [endpoint message] ; ARRGH not formatting correctly
-  (log/debug "Trying to send" message "to" endpoint)
-  (ajax/POST (config/api endpoint)
-             {:timeout (:timeout config/config)
-              :handler ajax-handler
-              :error-handler ajax-failer
-              :headers {:content-type "application/transit+json"}
-              :body (some-> message validate ->transit)
-              :response-format ajax-response}))
+  [endpoint msg]
+  (http! :post (config/api endpoint) {:body (-> msg validate ->transit)
+                                      :headers {:content-type "application/transit+json"}}))
 
 ; TODO could do delete!
 
