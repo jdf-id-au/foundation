@@ -1,5 +1,6 @@
 (ns foundation.server.http
   (:require [clojure.core.async :as async :refer [>!!]]
+            [foundation.message :as fm]
             [taoensso.timbre :as log]
             [clojure.java.io :as io]
             [comfort.io :as cio])
@@ -118,3 +119,35 @@
         (async/put! out {:channel channel :status 404}))
       (async/put! out {:channel channel :status 404}))
     (async/put! out {:channel channel :status 405})))
+
+(defmethod handler ::message [{:keys [channel method headers body cleanup] :as request}
+                              {:keys [out] :as server}]
+  ; Mark endpoint as ajax interface to foundation.message system.
+  ; f.message/receive for these messages should return a valid message
+  ; which this handler sends back to the client in a talk.http/response
+  (if-let [{:keys [type code] :as msg}
+           (fm/conform (cond (not= :post method) [::fm/error :method "POST only"]
+                             (not= fm/transit-mime-type (:content-type body))
+                             [::fm/error :content-type "Wrong content type"]
+                             :else (fm/<-transit (:value body))))]
+    (async/put! out
+      {:channel channel
+       :status (case type
+                 ::fm/error (case code :message 400 :method 405 :content-type 415
+                              500)
+                 200)
+       :headers {:content-type fm/transit-mime-type}
+       :content (fm/receive msg)}
+      (fn [_] (cleanup)))
+    (do (log/error "Problem handling ::message" request)
+        (async/put! out {:channel channel :status 500})
+        (cleanup))))
+
+#_(defmethod handler ::ajax [{:keys [channel meta method headers path
+                                     parameters body parts cleanup
+                                     handler route-params] :as request}
+                             {:keys [out] :as server}]
+    (let [msg (case method :get ; reuse handler kw as message kw
+                           [handler route-params parameters]
+                           :post
+                           (or body [handler route-params parameters parts]))]))

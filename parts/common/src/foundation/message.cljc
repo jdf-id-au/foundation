@@ -9,7 +9,8 @@
                        [cljs.spec.alpha :as s]
                        [com.cognitect.transit.types :as ty]]))
   #?(:cljs (:require-macros [foundation.message :refer [message]]))
-  #?(:clj (:import (java.io ByteArrayOutputStream ByteArrayInputStream))))
+  #?(:clj (:import (java.io ByteArrayOutputStream ByteArrayInputStream FileReader FileInputStream InputStream)
+                   (java.nio CharBuffer))))
 
 ; Transit
 
@@ -21,6 +22,31 @@
 (def read-handlers tt/read-handlers)
 (def write-handlers tt/write-handlers)
 
+(def transit-mime-type "application/transit+json")
+
+(defprotocol Transitable
+  (<-transit [this] "Decode data structure from transit contained in some type."))
+
+#?(:clj (extend-protocol Transitable
+          CharBuffer
+          (<-transit [this] (<-transit (.toString this)))
+          java.io.File
+          ; FIXME Strictly should go via FileReader to ensure correct charset!
+          (<-transit [this] (<-transit (FileInputStream. this)))
+          String
+          (<-transit [this] (<-transit (ByteArrayInputStream. (.getBytes this))))
+          InputStream
+          (<-transit [this]
+            (try (let [reader (transit/reader this :json read-handlers)]
+                   (transit/read reader))
+                 (catch Exception e
+                   (log/warn "Invalid message:" this "because:" (.getMessage e))))))
+
+   :cljs (extend-protocol Transitable
+           string ; https://cljs.github.io/api/cljs.core/extend-type
+           (<-transit [this] ; TODO error handling
+             (transit/read (transit/reader :json read-handlers) this))))
+
 (defn ->transit "Encode data structure to transit."
   [arg]
   #?(:clj  (let [out (ByteArrayOutputStream.)
@@ -28,16 +54,6 @@
              (transit/write writer arg)
              (.toString out))
      :cljs (transit/write (transit/writer :json write-handlers) arg)))
-
-(defn <-transit "Decode data structure from transit."
-  [json]
-  #?(:clj  (try (let [in (ByteArrayInputStream. (.getBytes json))
-                      reader (transit/reader in :json read-handlers)]
-                  (transit/read reader))
-                (catch Exception e
-                  (log/warn "Invalid message:" json "because:" (.getMessage e))))
-     :cljs (transit/read (transit/reader :json read-handlers) json)))
-; TODO catch js errors
 
 ; Wire protocol
 
@@ -58,41 +74,46 @@
              (~'s/cat :type #{~type} ~@catspec))))
 
 (defmulti ->client first)
-(message :error ->client :code keyword? :message string? :context (s/? any?))
+(message ::error ->client :code keyword? :message string? :context (s/? any?))
+(message ::auth ->client :username string? :token string?)
 #_(message :ready ->client)
 (s/def ::->client (s/multi-spec ->client retag))
 
 (defmulti ->server first)
-(message :auth ->server :user string? :password string?) ; NB don't have cleartext password
-(message :binary ->server :data #?(:clj bytes? :cljs #(instance? js/UInt8Array %)))
+(message ::auth ->server :username string? :password string?) ; NB don't have cleartext password
+(message ::binary ->server :data #?(:clj bytes? :cljs #(instance? js/UInt8Array %)))
 #_(message :init ->server)
 (s/def ::->server (s/multi-spec ->server retag))
 
-(defn conform
+(defn conformer
   "Conform incoming message according to (directional) spec."
   [spec msg]
   (let [v (s/conform spec msg)]
-    (log/debug "Conforming incoming message" msg v)
-    #_(def debug-incoming msg)
-    (case v ::s/invalid (log/warn "Invalid incoming message" msg) v)))
+    (case v
+      ::s/invalid (conformer spec [::error :message "Invalid incoming message" msg])
+      v)))
 
-(defn validate
+(defn validator
   "Validate outgoing message according to (directional) spec."
   [spec msg]
   #_(log/debug "Validating outgoing message" msg "against" spec)
   #_(def debug-outgoing msg)
   (if-let [explanation (s/explain-data spec msg)]
-    (log/error "Invalid outgoing message" msg explanation)
+    (log/error "Invalid outgoing message" msg explanation) ; TODO send something to indicate problem on other end
     msg))
 
+(def conform (partial conformer #?(:clj ::->server :cljs ::->client)))
+(def validate (partial validator #?(:clj ::->client :cljs ::->server)))
+
+(def decode (comp conform <-transit))
+(def encode (comp ->transit validate))
+
 ; Cursive doesn't get docstrings right if (defmulti receive #?(:clj...)).
-#?(:clj  (defmulti receive ; TODO *** implement (ws only?)
-           "Called by `f.server/ws-receive` with [ws-send clients user conformed-msg].
-            See specs."
-           (fn dispatch [{:keys [type]} server] type))
+#?(:clj  (defmulti receive
+           (fn dispatch [{:keys [type] :as conformed-msg} server] type))
            ; TODO validate user
    :cljs (defmulti receive
            "Called by the `f.client.connection/receive` defevent without coeffects.
             If a particular receive method needs coeffects, it can call another defevent itself.
             This inner defevent will return nil, and cause f.c.c/receive to do nothing further."
-           :type))
+           (fn dispatch [{:keys [type] :as conformed-msg}] :type)))

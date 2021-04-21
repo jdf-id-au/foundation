@@ -26,7 +26,7 @@
     :post
     (async/put! out {:channel channel :status 200
                      :headers {:content-type "application/transit+json"}
-                     :content (-> [:pong :yay "really"] api/validate message/->transit)})
+                     :content (message/encode [:pong :yay "really"])})
     (async/put! out {:channel channel :status 405})))
 
 (defn cljs "Start cljs repl." [] (shadow/repl :app))

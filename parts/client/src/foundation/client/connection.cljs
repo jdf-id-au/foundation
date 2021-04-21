@@ -4,7 +4,7 @@
             [cljs.core.async :as async :refer [alts!] :refer-macros [go alt!]]
             [cljs.core.async.interop :refer [p->c] :refer-macros [<p!]]
             [oops.core :refer [oget oset!]]
-            [foundation.message :as message :refer [->transit <-transit]]
+            [foundation.message :as fm :refer [->transit <-transit]]
             [foundation.client.config :as config]
             [foundation.client.logging :as log]
             [foundation.client.events]) ; think this is needed for defevent macro
@@ -12,10 +12,7 @@
   (:import (goog.net WebSocket)
            (goog.net.WebSocket EventType))) ; != (goog.net EventType)
 
-(def conform (partial message/conform ::message/->client))
-(def validate (partial message/validate ::message/->server))
-
-(defevent receive message/receive)
+(defevent receive fm/receive)
 
 ; Websocket - validated on both sides
 
@@ -33,7 +30,7 @@
               (ws-open true)))
     (listen ws EventType.MESSAGE
             ; NB non-conforming messages would raise error because no corresponding multimethod?
-            (fn [event] (-> event .-message <-transit conform receive)))
+            (fn [event] (-> event .-message fm/decode receive)))
     (listen ws EventType.ERROR
             (fn [event] ; TODO
               (log/error "Websocket error" (or (.-data event) ""))))
@@ -46,7 +43,7 @@
 ; FIXME make sure ws open (e.g. if server rebooted?)
 (defn send!
   "Send over websocket."
-  [msg] (.send -websocket (-> msg validate ->transit)))
+  [msg] (.send -websocket (fm/encode msg)))
 
 (defn websocket!
   "Connect or disconnect websocket."
@@ -67,7 +64,7 @@
 
 (defn fetch
   "More ergonomic js/fetch"
-  [url {:keys [params headers] :as opts}]
+  [url {:keys [params] :as opts}]
   (let [url (oset! (js/URL. url) "search" (usp params))]
     (p->c (js/fetch url (-> (dissoc opts :params)
                             (update :headers #(js/Headers. (clj->js %)))
@@ -75,15 +72,20 @@
 
 (defn http! [method url opts]
   (go (let [res-chan (fetch url (-> (assoc opts :method (name method) :mode "cors")
-                                    (update :headers assoc :accept "application/text+json")))
+                                    (update :headers assoc :accept fm/transit-mime-type)))
             res (alt! res-chan ([v] v)
                   ; TODO AbortController https://davidwalsh.name/cancel-fetch
                   (async/timeout (:timeout config/config)) (ex-info "Timeout" {:error :timeout}))]
         (-> (if (instance? cljs.core/ExceptionInfo res)
-              [:error :fetch "Fetch failed" res]
-              (case (oget res "status") 200 (-> res .text p->c <! <-transit)
-                                  [:error :fetch "Unsupported status" res]))
-            conform message/receive))))
+              [::fm/error :fetch "Fetch failed" res]
+              (case (oget res "status")
+                200 (try (-> res .text p->c <! <-transit)
+                         (catch js/Error e
+                           [::fm/error :message "Unable to read fetched message" e]))
+                401 [::fm/error :auth "Unauthenticated"]
+                403 [::fm/error :auth "Unauthorised"]
+                [::fm/error :fetch "Unsupported status" res]))
+            fm/conform fm/receive))))
 
 (defn get!
   ([endpoint] (get! endpoint {}))
@@ -92,40 +94,17 @@
 
 (defn post!
   [endpoint msg]
-  (http! :post (config/api endpoint) {:body (-> msg validate ->transit)
-                                      :headers {:content-type "application/transit+json"}}))
+  (http! :post (config/api endpoint) {:body (fm/encode msg)
+                                      :headers {:content-type fm/transit-mime-type}}))
 
-; TODO could do delete!
+;[[:db [{:app/state :<-> :auth :fail}]]]
+;[[:db [{:app/state :<-> :auth :error}]]])))
 
-; Auth
+(defmethod fm/receive :auth [{:keys [username token]}]
+  [[:db [{:app/state :<-> :username username :token token}]]])
 
-;(defevent auth-failer ; NB example only
-;  (fn [{:keys [status] :as response}]
-;    (log/info "Auth failure" response)
-;    (case status
-;      ; wrong credentials:
-;      #_{:status 401 :status-text "Unauthorized." :failure :error
-;         :response {:cause "No authorization provided"
-;                    :data {:status 401}
-;                    :headers {"www-authenticate" ["Basic realm=\"default\""]}}}
-;      401 [[:db [{:app/state :<-> :auth :fail}]]]
-;      ; server not running:
-;      #_{:status 0 :status-text "Request failed." :failure :failed}
-;      [[:db [{:app/state :<-> :auth :error}]]])))
-;
-;(defmethod message/receive :auth [{:keys [username token]}]
-;  [[:db [{:app/state :<-> :username username :token token}]]])
-;
-;(defn header
-;  "Create header for Basic authentication."
-;  [username password]
-;  (str "Basic " (b64/encodeString (str username ":" password))))
-;
-;(defn auth!
-;  [user password handler failer]
-;  (ajax/GET (config/api "login")
-;            {:headers {"Authorization" (header user password)}
-;             :timeout 5000
-;             :handler ajax-handler
-;             :error-handler failer
-;             :format :transit}))
+(defn auth-header
+  "Create header for Basic authentication (Authorization header)."
+  ; TODO www-authenticate "Basic realm=\"default\"" from server
+  [username password]
+  (str "Basic " (b64/encodeString (str username ":" password))))

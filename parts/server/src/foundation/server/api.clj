@@ -79,9 +79,6 @@
 
 ; Server
 
-(def conform (partial fm/conform ::fm/->server))
-(def validate (partial fm/validate ::fm/->client))
-
 (defprotocol Receivable
   (receive [this server] "Receive typed message from talk server.")
   (present [this] "Convert to practical representation."))
@@ -97,28 +94,28 @@
   (receive [{:keys [channel method path handler route-params parts] :as this}
             {:keys [routes clients out] :as server}]
     #_(assert (not (or handler route-params parts)))
-    (assert (nil? (get-in clients [channel :body])) "Unprocessed body at time of new request")
+    (assert (nil? (get-in clients [channel :assemble])) "Received new request while already assembling one.")
     ;(log/debug "Received" this)
     ;(log/debug "Matching" (bidi/match-route routes path))
-    (let [req+route (merge this (bidi/match-route routes path))]
+    (let [req+handler (merge this (bidi/match-route routes path))] ; adds :handler and :route-params
       (case method
-        (:get :delete) (fsh/handler req+route server)
+        (:get :delete) (fsh/handler req+handler server)
         (:post :put :patch)
-        (do (assoc-in clients [channel :body] (assoc req+route :parts []))
+        (do (assoc-in clients [channel :assemble] (assoc req+handler :parts []))
             (async/put! out {:channel channel :status 102})) ; permit upload
         (:head :options :trace) (log/warn "Ignored HTTP" (name method) "request:" this)
         (log/error "Unsupported HTTP method" (name method) "in:" this))))
   (present [this] this)
   Attribute
   (receive [{:keys [channel] :as this} {:keys [clients]}]
-    (update-in clients [channel :body :parts] conj this))
+    (update-in clients [channel :assemble :parts] conj this))
   (present [{:keys [name ^Charset charset file? value] :as this}]
     {name (if file?
             (FileReader. ^java.io.File value charset)
             (->> value ByteBuffer/wrap (.decode charset)))})
   File
   (receive [{:keys [channel] :as this} {:keys [clients]}]
-    (update-in clients [channel :body :parts] conj this))
+    (update-in clients [channel :assemble :parts] conj this))
   (present [{:keys [name filename ^Charset charset content-type file? value]}]
     (let [binary? (= content-type "application/octet-stream")]
       {[name filename] (if file?
@@ -130,19 +127,29 @@
                            (->> value ByteBuffer/wrap (.decode charset))))}))
   Trail ; NB relying on this ALWAYS appearing with PUT/POST/PATCH
   (receive [{:keys [channel cleanup] :as this} {:keys [clients] :as server}]
-    (when-let [body (get-in clients [channel :body])]
-      (fsh/handler (update body :parts conj this) server)
-      (update clients channel dissoc :body))
-    (cleanup))
-  (present [_])
+    (if-let [{:keys [parts] :as req+handler+parts} (get-in clients [channel :assemble])]
+      (try (let [simple? (and (= 1 (count parts))
+                           (= "payload" (-> parts first :name))) ; from `fake-decoder`
+                 assembled
+                 (cond-> (assoc req+handler+parts :cleanup cleanup)
+                   simple? (-> (dissoc :parts) (assoc :body (first parts)))
+                   ; group-by will cause :parts vals to be vectors, even if only one part
+                   (not simple?) (assoc :parts (group-by (comp keyword name) parts)))]
+             (fsh/handler assembled server)
+             (update clients channel dissoc :assemble))
+           (catch Exception e
+             (cleanup)
+             (log/error "Error assembling request" req+handler+parts e)))
+      (cleanup)))
+  (present [{:keys [headers]}] headers)
   Text
   (receive [{:keys [channel text] :as this} server]
-    (when-let [conformed (-> text <-transit conform)]
+    (when-let [conformed (fm/decode text)]
       (fm/receive (assoc conformed ::channel channel) server)))
-  (present [{:keys [text]}] (->> text <-transit (fm/validate ::fm/->server)))
+  (present [{:keys [text]}] (fm/decode text))
   Binary
   (receive [{:keys [channel data] :as this} server]
-    (if-let [conformed (conform [:binary data])]
+    (if-let [conformed (fm/conform [::fm/binary data])]
       (fm/receive (assoc conformed ::channel channel) server)))
   (present [{:keys [data]}] data))
 
@@ -164,7 +171,7 @@
     (doseq
       [[to-user msg] this
        :let [[type & _ :as validated]
-             (or (validate msg) [:error :outgoing "Problem generating server reply." msg])
+             (or (fm/validate msg) [::fm/error :outgoing "Problem generating server reply." msg])
              transit (->transit validated)
              _ (when (= type :error) (log/warn "Telling" to-user "about server error" msg))]
        channel (reduce (fn [agg [ch {:keys [type username]}]]
