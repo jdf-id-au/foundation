@@ -9,4 +9,7 @@
         com.fzakaria/slf4j-timbre {:mvn/version "0.3.21"} ; redirect dependencies' slf4j requirements
         org.slf4j/slf4j-api {:mvn/version "1.7.30"}
 
-        jdf/talk {:local/root "../../../talk"}}}
+        jdf/talk {:local/root "../../../talk"}
+
+        cheshire/cheshire {:mvn/version "5.10.0"}
+        com.cognitect/transit-clj {:mvn/version "1.0.324"}}}

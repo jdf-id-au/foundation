@@ -2,8 +2,8 @@
   (:require [clojure.core.async :as async :refer [>!!]]
             [foundation.message :as fm]
             [taoensso.timbre :as log]
-            [clojure.java.io :as io]
-            [comfort.io :as cio])
+            [comfort.io :as cio]
+            [hato.client :as hc])
   (:import (java.nio.file Path)
            (java.io File)))
   ;[yada.yada :as yada]
@@ -19,38 +19,22 @@
 
 ; Recaptcha
 
-;(defn recaptcha!
-;  "Verify recaptcha synchronously."
-;  [secret response]
-;  @(-> (http/post "https://www.google.com/recaptcha/api/siteverify"
-;                  {:form-params {:secret secret :response response}})
-;       (d/chain :body bs/to-string #(json/read-str % :key-fn keyword))
-;       (d/catch (fn [e] (log/warn "Error verifying reCAPTCHA"
-;                                  (.getClass e) (.getMessage e))))))
+#_(defonce http-client (hc/build-http-client {})) ; FIXME possibly move to being application's responsibility
 
-;(defn human?
-;  [{:keys [parameters] :as ctx}
-;   {:keys [recaptcha-secret] :as config}]
-;  (let [{:keys [g-recaptcha-response]} (:form parameters)
-;        {:keys [success score]} (recaptcha! recaptcha-secret g-recaptcha-response)]
-;    (and success (< 0.5 score))))
+#_(defn recaptcha!
+    "Verify recaptcha synchronously. Pass in hato http-client."
+    [secret response]
+    (try
+      (-> (hc/post "https://www.google.com/recaptcha/api/siteverify"
+            {:http-client http-client :form-params {:secret secret :response response}})
+          :body) ; TODO check keys are keywordified
+      (catch Exception e
+        (log/warn "Error verifying reCAPTCHA" (.getClass e) (.getMessage e)))))
 
-; Ajax
-
-;(defn ajax-send
-;  "Send `msg` reply. See `f.common.message` specs."
-;  [msg]
-;  (let [[type & _ :as validated]
-;        (or (validate msg) [:error :outgoing "Problem generating server reply." msg])]
-;    (if (= type :error) (log/warn "Telling user about server error" msg))
-;    (->transit validated)))
-;
-;(defn ajax-receive
-;  "Acknowledge request with appropriate reply."
-;  [msg]
-;  (ajax-send (if-let [conformed (conform msg)]
-;               (message/receive nil nil conformed)
-;               [:error :incoming "Invalid message sent to server." msg])))
+#_(defn human?
+    [recaptcha-secret g-recaptcha-response]
+    (let [{:keys [success score]} (recaptcha! recaptcha-secret g-recaptcha-response)]
+      (and success (< 0.5 score))))
 
 ; Server
 
@@ -64,27 +48,6 @@
 ;            ; this is such a mess, possibly "worse" on firefox
 ;            ; https://github.com/google/recaptcha/issues/107
 ;            (str "script-src 'unsafe-eval' 'nonce-" nonce "';")))
-
-;#_(def example-routes
-;    ["/" {"" (server/resource
-;               {:methods {; TODO deal with GET queries :parameters {:query :spec?}...
-;                          :get {:produces "text/html"
-;                                :response :response?}
-;                          :post {:consumes "application/x-www-form-urlencoded"
-;                                 :parameters {:form :schema?}
-;                                 :produces "text/html"
-;                                 :response :response?}}
-;                :responses {400 {:produces "text/html"
-;                                 :response :response?}}})}])
-;
-;(defn resource
-;  "Make yada resource with nonce and Content Security Policy."
-;  [resource-map]
-;  (-> (yada/resource (assoc resource-map
-;                       ; not sure why this needs to be added explicitly
-;                       :interceptor-chain yada/default-interceptor-chain))
-;      (yada.handler/prepend-interceptor add-nonce)
-;      (yada.handler/append-interceptor yada.security/security-headers add-csp)))
 
 (defmulti handler
   (fn dispatch [{:keys [handler] :as request} {:keys [out] :as server}] handler))
@@ -125,23 +88,23 @@
   ; Mark endpoint as ajax interface to foundation.message system.
   ; f.message/receive for these messages should return a valid message
   ; which this handler sends back to the client in a talk.http/response
-  (if-let [{:keys [type code] :as msg}
-           (fm/conform (cond (not= :post method) [::fm/error :method "POST only"]
-                             (not= fm/transit-mime-type (:content-type body))
-                             [::fm/error :content-type "Wrong content type"]
-                             :else (fm/<-transit (:value body))))]
+  (let [{:keys [type code] :as msg}
+        (fm/conform (cond (not= :post method) [::fm/error :method "POST only"]
+                          (not= fm/transit-mime-type (:content-type body))
+                          [::fm/error :content-type "Wrong content type"]
+                          :else (fm/<-transit (:value body))))
+        [reply-type reply-code & _ :as reply]
+        (case type ::fm/error nil
+          (or (fm/validate (fm/receive msg))
+              [::fm/error :outgoing "Problem generating server reply" msg]))]
     (async/put! out
       {:channel channel
        :status (case type
-                 ::fm/error (case code :message 400 :method 405 :content-type 415
-                              500)
-                 200)
+                 ::fm/error (case code :message 400 :method 405 :content-type 415 500)
+                 (case reply-type ::fm/error (case reply-code :outgoing 500 500) 200))
        :headers {:content-type fm/transit-mime-type}
-       :content (fm/receive msg)}
-      (fn [_] (cleanup)))
-    (do (log/error "Problem handling ::message" request)
-        (async/put! out {:channel channel :status 500})
-        (cleanup))))
+       :content (fm/->transit reply)}
+      (fn [_] (cleanup)))))
 
 #_(defmethod handler ::ajax [{:keys [channel meta method headers path
                                      parameters body parts cleanup
