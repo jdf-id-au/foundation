@@ -68,6 +68,7 @@
   (let [url (oset! (js/URL. url) "search" (usp params))]
     (log/debug url opts)
     (p->c (js/fetch url (-> (dissoc opts :params)
+                            (assoc :keepalive true) ; ?? https://javascript.info/fetch-api#keepalive not mdn
                             (update :headers #(js/Headers. (clj->js %)))
                             clj->js)))))
 

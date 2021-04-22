@@ -62,9 +62,10 @@
   "Add channel to request and approve any POST/PUT/PATCH."
   [{:keys [channel method] :as request} {:keys [out opts] :as server} rest-of-response & args]
   (let [[fn1 on-caller?] args]
-    (log/debug "Responding")
+    (log/debug "FSHTTP PUT!")
     ; FIXME *** roughly alternate js/fetch post requests are closing channel prematurely while server is trying to respond (chrome/ff/safari, each with different error messages, some relating to CORS, which probably come from the fact that the channel closes prematurely);
-    ; interestingly chrome OPTIONS doesn't seem to set keep-alive (vs mdn cors overview egs)
+    ; maybe monitoring artifact re keep-alive https://github.com/google/tamperchrome/discussions/134
+    ; maybe need one more (.read ctx) ??
     (when-not (apply async/put! out (log/spy :debug (-> rest-of-response
                                                      (assoc :channel channel)
                                                      #_(update :headers
