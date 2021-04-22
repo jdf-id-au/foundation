@@ -116,4 +116,7 @@
            "Called by the `f.client.connection/receive` defevent without coeffects.
             If a particular receive method needs coeffects, it can call another defevent itself.
             This inner defevent will return nil, and cause f.c.c/receive to do nothing further."
-           (fn dispatch [{:keys [type] :as conformed-msg}] :type)))
+           (fn dispatch [{:keys [type] :as conformed-msg}] type)))
+
+#?(:cljs (defmethod receive ::error [msg]
+           (log/error msg)))

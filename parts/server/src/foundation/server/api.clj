@@ -125,7 +125,9 @@
                          (if binary?
                            value
                            (->> value ByteBuffer/wrap (.decode charset))))}))
-  Trail ; NB relying on this ALWAYS appearing with PUT/POST/PATCH
+  Trail
+  ; NB relying on this ALWAYS appearing with PUT/POST/PATCH
+  ; NB application needs to run (cleanup) when finished
   (receive [{:keys [channel cleanup] :as this} {:keys [clients] :as server}]
     (if-let [{:keys [parts] :as req+handler+parts} (get-in clients [channel :assemble])]
       (try (let [simple? (and (= 1 (count parts))
@@ -190,8 +192,9 @@
   ([port routes] (server! port routes nil))
   ([port routes opts]
    (let [ws-path (bidi/path-for routes ::ws)
-         server (-> (talk/server! port (cond-> opts ws-path (assoc :ws-path ws-path)))
-                    (assoc :routes routes))
+         opts (cond-> opts ws-path (assoc :ws-path ws-path))
+         server (-> (talk/server! port opts)
+                    (assoc :routes routes :opts opts))
          _ (go-loop [msg (<! (server :in))]
              (if msg
                (do (try (receive msg server) ; NB currently sequential and blocking go; think about async/thread but unclear what if anything limits size of its thread pool
@@ -199,7 +202,8 @@
                           (log/error "Error handling incoming message" msg e)))
                    (recur (<! (server :in))))
                (log/warn "Tried to read from closed server in chan")))
-         out (chan) ; this chan is only for websocket because http response is async/put! from handler
+         ; NB this chan is only for websocket because http response is async/put! from handler
+         out (chan)
          _ (go-loop [msg (<! out)]
              (if msg
                (do (try (send! msg server) ; TODO catch closed out chan etc

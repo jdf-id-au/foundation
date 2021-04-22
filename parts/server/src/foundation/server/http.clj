@@ -4,14 +4,7 @@
             [taoensso.timbre :as log]
             [comfort.io :as cio]
             [hato.client :as hc])
-  (:import (java.nio.file Path)
-           (java.io File)))
-  ;[yada.yada :as yada]
-  ;[yada.handler]
-  ;[aleph.http :as http]
-  ;[manifold.deferred :as d]
-  ;[byte-streams :as bs]
-  ;[manifold.stream :as st]
+  (:import (java.io File)))
   ;[buddy.core.nonce :as nonce]
   ;  (:import (org.bouncycastle.util.encoders Hex)))
 
@@ -65,23 +58,35 @@
    :png "image/png"
    :gif "image/gif"})
 
-(defmethod handler ::file [{:keys [channel method path headers] :as request}
-                           {:keys [out] :as server}]
+(defn respond!
+  "Add channel to request and approve any POST/PUT/PATCH."
+  [{:keys [channel method] :as request} {:keys [out opts] :as server} rest-of-response & args]
+  (let [[fn1 on-caller?] args]
+    (when-not (apply async/put! out (-> rest-of-response
+                                     (assoc :channel channel)
+                                     (update :headers
+                                       assoc :access-control-allow-origin
+                                       (:allow-origin opts))) args)
+      (log/warn "Failed to send http response because out chan closed."))))
+
+(defmethod handler ::file [{:keys [method path] :as request} server]
   ; TODO 304 semantics
   (case method
     :get
     (if-let [^File safe-local (cio/safe-subpath "public"
                                 (case path "/" "index.html" path))] ; deliberately hardcoded "public/"
       (if-let [content-type (some-> safe-local cio/get-extension keyword content-types)]
-        (async/put! out {:channel channel :status 200
-                         ; TOOD parse :accept header (without bringing in a million deps)
-                         ; https://tools.ietf.org/html/rfc7231#section-5.3.2
-                         :headers {:content-type content-type
-                                   :x-content-type-options "nosniff"}
-                         :content safe-local})
-        (async/put! out {:channel channel :status 404}))
-      (async/put! out {:channel channel :status 404}))
-    (async/put! out {:channel channel :status 405})))
+
+        (respond! request server
+          {:status 200
+           ; TOOD parse :accept header (without bringing in a million deps)
+           ; https://tools.ietf.org/html/rfc7231#section-5.3.2
+           :headers {:content-type content-type
+                     :x-content-type-options "nosniff"}
+           :content safe-local})
+        (respond! request server {:status 404}))
+      (respond! request server {:status 404}))
+    (respond! request server {:status 405})))
 
 (defmethod handler ::message [{:keys [channel method headers body cleanup] :as request}
                               {:keys [out] :as server}]
@@ -97,9 +102,8 @@
         (case type ::fm/error nil
           (or (fm/validate (fm/receive msg))
               [::fm/error :outgoing "Problem generating server reply" msg]))]
-    (async/put! out
-      {:channel channel
-       :status (case type
+    (respond! request server
+      {:status (case type
                  ::fm/error (case code :message 400 :method 405 :content-type 415 500)
                  (case reply-type ::fm/error (case reply-code :outgoing 500 500) 200))
        :headers {:content-type fm/transit-mime-type}
