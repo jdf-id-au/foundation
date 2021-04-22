@@ -66,6 +66,7 @@
   "More ergonomic js/fetch"
   [url {:keys [params] :as opts}]
   (let [url (oset! (js/URL. url) "search" (usp params))]
+    (log/debug url opts)
     (p->c (js/fetch url (-> (dissoc opts :params)
                             (update :headers #(js/Headers. (clj->js %)))
                             clj->js)))))
@@ -96,6 +97,7 @@
   [endpoint msg]
   (http! :post (config/api endpoint) {:body (fm/encode msg)
                                       :headers {:content-type fm/transit-mime-type}}))
+                                                ;:connection "keep-alive"}}))
 
 ;[[:db [{:app/state :<-> :auth :fail}]]]
 ;[[:db [{:app/state :<-> :auth :error}]]])))
