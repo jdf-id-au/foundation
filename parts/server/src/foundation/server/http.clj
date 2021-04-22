@@ -62,15 +62,11 @@
   "Add channel to request and approve any POST/PUT/PATCH."
   [{:keys [channel method] :as request} {:keys [out opts] :as server} rest-of-response & args]
   (let [[fn1 on-caller?] args]
-    (log/debug "FSHTTP PUT!")
-    ; FIXME *** roughly alternate js/fetch post requests are closing channel prematurely while server is trying to respond (chrome/ff/safari, each with different error messages, some relating to CORS, which probably come from the fact that the channel closes prematurely);
-    ; maybe monitoring artifact re keep-alive https://github.com/google/tamperchrome/discussions/134
-    ; maybe need one more (.read ctx) ??
-    (when-not (apply async/put! out (log/spy :debug (-> rest-of-response
-                                                     (assoc :channel channel)
-                                                     #_(update :headers
-                                                         assoc :access-control-allow-origin
-                                                         (:allow-origin opts)))) args)
+    (when-not (apply async/put! out (-> rest-of-response
+                                     (assoc :channel channel)
+                                     #_(update :headers
+                                         assoc :access-control-allow-origin
+                                         (:allow-origin opts))) args)
       (log/warn "Failed to send http response because out chan closed."))))
 
 (defmethod handler ::file [{:keys [method path] :as request} server]
