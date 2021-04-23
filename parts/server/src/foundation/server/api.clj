@@ -23,18 +23,17 @@
 ; Administration
 
 (def cli-options
-  "Basic set of options"
+  "Basic set of options.
+   Don't provide defaults: they will inappropriately override config file (see `roll-up`)."
   [["-h" "--help" "Show this help text."]
    ["-c" "--config FILE" "Use specified config file."
     :default fc/config-filename
     :validate [#(s/valid? ::fs/config-file %) "No such config file."]]
    ["-p" "--port PORT" "Use specified port."
-    :default 8000
     :parse-fn #(Integer/parseInt %)
     :validate [#(s/valid? ::fs/port %) "Please use port in range 8000-8999."]]
    ["-n" "--dry-run" "Run without doing anything important."]
    ["-l" "--log-level LEVEL" "Set log level."
-    :default :info
     :parse-fn keyword
     :validate [#(s/valid? ::fs/log-level %) "Please use debug, info or warn."]]])
 
@@ -44,12 +43,13 @@
    :parse-fn #(Integer/parseInt %)
    :validate [#(s/valid? ::fs/repl %) "Please use port in range 9000-9999."]])
 
-;(def --allow-origin
-;  ["-o" "--allow-origin HOST" "Allow api use from sites served at this (single) host."
-;   :validate [#(s/valid? ::fs/allowed-origin %) "Invalid host."]])
+(def --allow-origin
+  ["-o" "--allow-origin HOST" "Allow api use from sites served at this (single) host."
+   :validate [#(s/valid? ::fs/allowed-origin %) "Invalid host."]])
 
 (defn roll-up
-  "Roll up relevant cli options into config (always includes: port, dry-run, log-level)."
+  "Roll up relevant cli options into config (always includes: port, dry-run, log-level).
+   This lets config be overridden by cli options."
   [spec {:keys [config] :as options} & additional-keys]
   (let [key-list (conj additional-keys :port :dry-run :log-level)]
     (log/debug "Rolling up" spec "with" options "and" key-list)

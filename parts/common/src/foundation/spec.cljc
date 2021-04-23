@@ -10,10 +10,10 @@
 #?(:clj (s/def ::config-file (s/and #(clojure.string/ends-with? ".edn" %)
                                     #(.exists (io/as-file %)))))
 
-;(s/def ::allowed-origin
-;  (s/and string?
-;         #(let [{:keys [scheme host port path]} (cs/URI-parts %)]
-;            (and scheme host (not path)))))
+(s/def ::allowed-origin
+  (s/and string?
+         #(let [{:keys [scheme host port path]} (cs/URI-parts %)]
+            (and scheme host (not path)))))
 (s/def ::log-level #{:debug :info :warn})
 (s/def ::recaptcha-key ::cs/non-blank-string)
 (s/def ::recaptcha-secret ::cs/non-blank-string)
