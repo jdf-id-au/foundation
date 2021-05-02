@@ -45,6 +45,7 @@
    :cljs (extend-protocol Transitable
            string ; https://cljs.github.io/api/cljs.core/extend-type
            (<-transit [this] ; TODO error handling
+             ; Always buffered in browsers https://stackoverflow.com/a/13011241/780743 https://web.dev/websocketstream/
              (transit/read (transit/reader :json read-handlers) this))))
 
 (defn ->transit "Encode data structure to transit."

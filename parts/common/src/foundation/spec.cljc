@@ -13,7 +13,8 @@
 (s/def ::allowed-origin
   (s/and string?
          #(let [{:keys [scheme host port path]} (cs/URI-parts %)]
-            (and scheme host (not path)))))
+            ; https://developers.google.com/web/updates/2020/07/referrer-policy-new-chrome-default#what_does_this_change_mean
+            (and scheme host #_(not path))))) ; trying to work out strict-origin-when-cross-origin
 (s/def ::log-level #{:debug :info :warn})
 (s/def ::recaptcha-key ::cs/non-blank-string)
 (s/def ::recaptcha-secret ::cs/non-blank-string)
