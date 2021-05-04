@@ -59,27 +59,22 @@
    :gif "image/gif"})
 
 (defn respond!
-  "Add channel to request and approve any POST/PUT/PATCH."
-  [{:keys [channel method] :as request} {:keys [out opts] :as server} rest-of-response & args]
-  (let [[fn1 on-caller?] args]
-    (when-not (apply async/put! out (-> rest-of-response
-                                     (assoc :channel channel)
-                                     #_(update :headers
-                                         assoc :access-control-allow-origin
-                                         (:allow-origin opts))) args)
-      (log/warn "Failed to send http response because out chan closed."))))
+  "Add request's channel to response and send."
+  [{:keys [channel method] :as request} {:keys [out opts] :as server} rest-of-response & put!-args]
+  (when-not (apply async/put! out (assoc rest-of-response :channel channel) put!-args)
+    (log/warn "Failed to send http response because out chan closed.")))
 
 (defmethod handler ::file [{:keys [method path] :as request} server]
-  ; TODO 304 semantics
+  "Serve files strictly under public/ directory.
+   No 304 semantics, super basic. You should be using a reverse proxy/static file server."
   (case method
     :get
     (if-let [^File safe-local (cio/safe-subpath "public"
                                 (case path "/" "index.html" path))] ; deliberately hardcoded "public/"
       (if-let [content-type (some-> safe-local cio/get-extension keyword content-types)]
-
         (respond! request server
           {:status 200
-           ; TOOD parse :accept header (without bringing in a million deps)
+           ; TOOD parse :accept header (without bringing in a million deps; maybe juxt/reap ?)
            ; https://tools.ietf.org/html/rfc7231#section-5.3.2
            :headers {:content-type content-type
                      :x-content-type-options "nosniff"}
@@ -90,14 +85,16 @@
 
 (defmethod handler ::message [{:keys [channel method headers body cleanup] :as request}
                               {:keys [out] :as server}]
-  ; Mark endpoint as ajax interface to foundation.message system.
-  ; f.message/receive for these messages should return a valid message
-  ; which this handler sends back to the client in a talk.http/response
+   "Mark endpoint as ajax interface to foundation.message system.
+    f.message/receive for these messages should return a valid message
+    which this handler sends back to the client in a talk.http/response ."
   (let [{:keys [type code] :as msg}
-        (fm/conform (cond (not= :post method) [::fm/error :method "POST only"]
+        (fm/conform (cond (not= :post method)
+                          [::fm/error :method "POST only"]
                           (not= fm/transit-mime-type (:content-type body))
                           [::fm/error :content-type "Wrong content type"]
-                          :else (fm/<-transit (:value body))))
+                          :else
+                          (fm/<-transit (:value body))))
         [reply-type reply-code & _ :as reply]
         (case type ::fm/error nil
           (or (fm/validate (fm/receive msg))
