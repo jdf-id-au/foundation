@@ -17,7 +17,7 @@
     "@cljs-oss/module-deps": "^1.1.1",
     "@js-joda/core": "^3.2.0",
     "@js-joda/locale_en": "^3.2.2",
-    "lodash": "^4.17.20",
+    "lodash": "^4.17.21",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "react-refresh": "^0.8.1",
