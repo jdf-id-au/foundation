@@ -36,7 +36,7 @@
    (let [f (io/file filename)]
      (if (.exists f)
        (let [config (->> filename slurp edn/read-string process)]
-         #_(log/debug "Intepreting config" config "against" spec)
+         (log/debug "Intepreting config" config "against" spec)
          (if-let [explanation (s/explain-data spec config)]
            (do (log/error "Invalid config" {:explanation explanation})
                ; https://ask.clojure.org/index.php/8313/ex-str-can-be-misleading-when-handling-s-explain-data
@@ -46,5 +46,5 @@
 
 (defmacro from-disk
   "Sneak config into client at compile time.
-   Refreshing config can be difficult... need to modify this ns to trigger reload?"
+   Refreshing config can be difficult... need to modify this ns to trigger reload!"
   [] `~(load ::fs/client-config "build-client.edn" configure-client))
