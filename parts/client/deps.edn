@@ -4,6 +4,6 @@
         jdf/foundation-common {:local/root "../common"}
 
         binaryage/oops {:mvn/version "0.7.1"}
-        lilactown/helix {:mvn/version "0.0.15"}
-        ; {:git/url "https://github.com/Lokeh/helix.git" :sha ""}
+        lilactown/helix {:mvn/version "0.1.1"}
+        ; {:git/url "https://github.com/lilactown/helix.git" :sha ""}
         com.cognitect/transit-cljs {:mvn/version "0.8.264"}}}
