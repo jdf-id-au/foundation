@@ -97,6 +97,7 @@
     (assert (nil? (get-in clients [channel :assemble])) "Received new request while already assembling one.")
     ;(log/debug "Received" this)
     ;(log/debug "Matching" (bidi/match-route routes path))
+    ; TODO handle invalid route?
     (let [req+handler (merge this (bidi/match-route routes path))] ; adds :handler and :route-params
       (case method
         (:get :delete) (fsh/handler req+handler server)
