@@ -16,10 +16,10 @@
   (if (= @store (datascript/empty-db))
     (reset! store (-> (datascript/empty-db schema)
                       (datascript/db-with tx-data)))
-    (log/warn "Would have overwritten data.")))
+    (log/warn "Store not empty so not changed.")))
 
 (defn register
-  "Register a subscription, being a query and optional post-processing function."
+  "Register a subscription, being a query (see `answer` for types) and optional post-processing function."
   ([name query] (register name query nil))
   ([name query process]
    (swap! subscriptions assoc name
@@ -32,6 +32,13 @@
    (let [ns (namespace nskw) n (name nskw)]
      ; NB could consider `[:eavt [:app/state ns] n] (comp :v first)` if slow
      (register (keyword ns n) [:find '?v '. :where [[:app/state (keyword ns)] (keyword n) '?v]] process))))
+
+(defn singleton
+  "Convenience for creating datom for singleton storage value (see f.client.default/schema).
+   Returns `{:app/state kw-namespace kw-name value}`."
+  [nskw value]
+  (let [ns (namespace nskw) n (name nskw)]
+    {:app/state (keyword ns) (keyword n) value}))
 
 (defn- run-sub-impl
   "Look up subscription and run it."
