@@ -4,7 +4,8 @@
             [clojure.spec.alpha :as s]
             [foundation.spec :as fs]
             [taoensso.timbre :as log]
-            [clojure.java.io :as io])
+            [clojure.java.io :as io]
+            [comfort.core :as cc])
   (:refer-clojure :exclude [load])
   (:import (java.net NetworkInterface InetAddress)))
 
@@ -36,7 +37,7 @@
    (let [f (io/file filename)]
      (if (.exists f)
        (let [config (->> filename slurp edn/read-string process)]
-         (log/debug "Intepreting config" config "against" spec)
+         (log/debug "Intepreting config" (cc/redact-keys config :password)  "against" spec)
          (if-let [explanation (s/explain-data spec config)]
            (do (log/error "Invalid config" {:explanation explanation})
                ; https://ask.clojure.org/index.php/8313/ex-str-can-be-misleading-when-handling-s-explain-data
