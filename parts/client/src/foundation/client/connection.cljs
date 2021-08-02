@@ -58,7 +58,7 @@
 (defn usp
   "Clojure map -> URLSearchParams"
   [params]
-  (reduce (fn [usp [k v]] (.append usp (name k) v))
+  (reduce (fn [usp [k v]] (.append usp (name k) v) usp)
     (js/URLSearchParams.)
     params))
 
@@ -90,8 +90,8 @@
 
 (defn get!
   ([endpoint] (get! endpoint {}))
-  ([endpoint params]
-   (http! :get (config/api endpoint) {:params params})))
+  ([endpoint opts]
+   (http! :get (config/api endpoint) opts)))
 
 (defn post!
   [endpoint msg]
