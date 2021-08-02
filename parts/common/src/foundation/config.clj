@@ -39,6 +39,7 @@
        (let [config (->> filename slurp edn/read-string process)]
          (log/debug "Intepreting config" (cc/redact-keys config :password)  "against" spec)
          (if-let [explanation (s/explain-data spec config)]
+           ; TODO redact password here too?
            (do (log/error "Invalid config" {:explanation explanation})
                ; https://ask.clojure.org/index.php/8313/ex-str-can-be-misleading-when-handling-s-explain-data
                (throw (ex-info "Invalid config" explanation)))
