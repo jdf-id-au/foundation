@@ -31,7 +31,7 @@
   ([nskw process]
    (let [ns (namespace nskw) n (name nskw)]
      ; NB could consider `[:eavt [:app/state ns] n] (comp :v first)` if slow
-     (register (keyword ns n) [:find '?v '. :where [[:app/state (keyword ns)] (keyword n) '?v]] process))))
+     (register nskw [:find '?v '. :where [[:app/state (keyword ns)] (keyword n) '?v]] process))))
 
 (defn singleton
   "Convenience for creating datom for singleton storage value (see f.client.default/schema).

@@ -119,5 +119,6 @@
             This inner defevent will return nil, and cause f.c.c/receive to do nothing further."
            (fn dispatch [{:keys [type] :as conformed-msg}] type)))
 
-#?(:cljs (defmethod receive ::error [msg]
-           (log/error msg)))
+; Client should implement this
+;#?(:cljs (defmethod receive ::error [msg]
+;           (log/error msg)))
