@@ -86,7 +86,7 @@
                 401 [::fm/error :auth "Unauthenticated"]
                 403 [::fm/error :auth "Unauthorised"]
                 [::fm/error :fetch "Unsupported status" res]))
-            fm/conform fm/receive))))
+            fm/conform receive))))
 
 (defn get!
   ([endpoint] (get! endpoint {}))
@@ -99,10 +99,8 @@
                                       :headers {:content-type fm/transit-mime-type}}))
                                                 ;:connection "keep-alive"}}))
 
-;[[:db [{:app/state :<-> :auth :fail}]]]
-;[[:db [{:app/state :<-> :auth :error}]]])))
-
-(defmethod fm/receive :auth [{:keys [username token]}]
+; NB Client should retract any password from its db...
+(defmethod fm/receive ::fm/auth [{:keys [username token]}]
   [[:db [{:app/state :<-> :username username :token token}]]])
 
 (defn auth-header
