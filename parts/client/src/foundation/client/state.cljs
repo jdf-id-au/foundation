@@ -83,7 +83,7 @@
   "Wire up React set-state! for given subscription.
    args are passed to the subscription's query *and* its post-processing function."
   [name & args]
-  {:pre [(sub-exists? name)]}
+  (assert (sub-exists? name) (str "No such subscription " name))
   (let [[query process] (name @subscriptions)
         state (answer @store query process args)
         [_ set-state!] (hooks/use-state state)]
