@@ -114,3 +114,13 @@
 
 (def transact! (partial datascript/transact! store))
 (defn listen! [] (datascript/listen! store :subs watcher))
+
+(defn hot-text
+  "Avoid spamming datascript with per-character text input.
+   `submit` is event-fn to fire with completed text.
+   onChange is for input, onSubmit is for form."
+  [initial submit]
+  (let [[state set-state] (hooks/use-state initial)
+        onChange (fn [e] (-> e .-target .-value str set-state))
+        onSubmit (fn [e] (submit state) (set-state initial) (.preventDefault e))]
+    [state onChange onSubmit]))
