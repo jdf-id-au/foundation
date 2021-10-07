@@ -2,7 +2,8 @@
   "Connect datascript store to React state."
   (:require [helix.hooks :as hooks]
             [datascript.core :as datascript]
-            [foundation.client.logging :as log]))
+            [foundation.client.logging :as log]
+            [comfort.core :as cc]))
 
 (defonce store (datascript/create-conn)) ; adds meta :listeners
 (defonce subscriptions (atom {}))
@@ -116,11 +117,23 @@
 (defn listen! [] (datascript/listen! store :subs watcher))
 
 (defn hot-text
-  "Avoid spamming datascript with per-character text input.
+  "Avoid spamming datascript/ws with per-character text input.
    `submit` is event-fn to fire with completed text.
-   onChange is for input, onSubmit is for form."
-  [initial submit]
-  (let [[state set-state] (hooks/use-state initial)
-        onChange (fn [e] (-> e .-target .-value str set-state))
-        onSubmit (fn [e] (submit state) (set-state initial) (.preventDefault e))]
-    [state onChange onSubmit]))
+   Returns state and actions:
+   - set (like set-state)
+   - send (submit and clear, e.g. for form)
+   - commit (just submit)
+   - key (commits on Enter, reverts on Esc outside form context)"
+  ([submit] (hot-text nil submit))
+  ([initial submit]
+   (let [initial (or initial "")
+         [state set-state] (hooks/use-state initial)]
+     [state {:set (fn [e] (-> e .-target .-value str set-state))
+             ; NB Think `(str state)` is needed to make real string (else "str.trim is not a function")
+             :send (fn [e] (submit (cc/optional-str (str state)) (set-state initial) (.preventDefault e)))
+             :commit (fn [_] (submit (cc/optional-str (str state))))
+             :key (fn [e] (case (.-key e)
+                            "Enter" (submit (cc/optional-str (str state)))
+                            ; FIXME blur and don't fire any :onBlur with cancelled value
+                            "Escape" (do (set-state initial) #_(-> e .-target .blur))
+                            nil))}])))

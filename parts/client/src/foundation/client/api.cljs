@@ -32,5 +32,6 @@
   (log/info "version" (:version config/config))
   (render ($ root-component) (. js/document getElementById mount-point)))
 
+(def value-as events/value-as)
 (def as events/as)
 (def hot-text state/hot-text)

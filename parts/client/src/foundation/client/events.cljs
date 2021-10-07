@@ -82,8 +82,8 @@
   [t v]
   (condp = t
     keyword (keyword v)
-    int (let [i (js/parseInt v)] (when-not (js/Number.isNan i) i))
-    float (let [f (js/parseFloat v)] (when-not (js/Number.isNan f) f))
+    int (let [i (js/parseInt v)] (when-not (js/Number.isNaN i) i))
+    float (let [f (js/parseFloat v)] (when-not (js/Number.isNaN f) f))
     str v))
 
 (defn as
