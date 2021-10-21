@@ -2,3 +2,6 @@
 foundation.iml
 public/js/
 .nrepl-port
+.cpcache/
+node_modules/
+.clj-kondo/
