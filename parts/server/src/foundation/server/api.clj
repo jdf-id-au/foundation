@@ -53,6 +53,7 @@
   [spec {:keys [config] :as options} & additional-keys]
   (let [key-list (conj additional-keys :port :dry-run :log-level)]
     (log/debug "Rolling up" spec "with" options "and" key-list)
+    ;; FIXME doesn't validate cli options
     (merge (fc/load spec config) (select-keys options key-list))))
 
 (defn validate-args
