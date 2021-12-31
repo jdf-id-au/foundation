@@ -52,6 +52,7 @@
    :debug log/debug
    :navigate history/navigate!
    :back #(.back js/window.history)
+   :restart #(.assign js/window.location (subs (.-href js/window.location) 0 (.indexOf (.-href js/window.location) (.-hash js/window.location))))
    :dispatch events/dispatch!
    :get connection/get!
    :post connection/post!
