@@ -78,7 +78,7 @@
   :ui/view :ui/route-params)
 
 (defn value-as
-  "Convert value from string to cljs type."
+  "Convert value from string to cljs type. Use `as` instead to handle js event."
   [t v]
   (condp = t
     keyword (keyword v)

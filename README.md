@@ -9,7 +9,7 @@ Pursues [Jamstack](https://jamstack.org/) concept, with statically served client
 ### Client: `jdf/foundation-client`
 - [datascript](https://github.com/tonsky/datascript) store
 - pure event functions
-- coeffects and effects like [re-frame](https://github.com/day8/re-frame)
+- subscriptions, coeffects and effects somewhat like [re-frame](https://github.com/day8/re-frame)
 - React hooks via [helix](https://github.com/Lokeh/helix)
 - Html5History URL fragment management
 - config (baked in at build time, plus via html file)

@@ -55,6 +55,7 @@
       query e.g. `'[:find ...]`
     - running index lookup against given datascript store (args applied to `d/datoms` call), or
       query e.g. `[:aevt :attribute-name]`
+    - running pull against given datascript store (args applied to `d/pull` call)
     - referring to the value of other subscriptions.
       query e.g. `{:sub-name [sub-args ...]}`
    Post-process with supplied function, which *also* receives args."
@@ -64,6 +65,7 @@
     (let [q (case (first query)
               :find (apply datascript/q query store args)
               (:eavt :aevt :avet) (apply datascript/datoms store (concat query args))
+              :pull (apply datascript/pull store (concat (next query) args))
               (if (map? query)
                 (into {}
                   ; TODO method for passing args through from calling sub?
