@@ -1,5 +1,5 @@
 {:paths ["src"]
- :deps {org.clojure/clojurescript {:mvn/version "1.11.54"}
+ :deps {org.clojure/clojurescript {:mvn/version "1.11.57"}
 
         jdf/foundation-common {:local/root "../common"}
 

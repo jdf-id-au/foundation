@@ -35,5 +35,6 @@
   [log-level]
   (log/merge-config! {:middleware [pprint]
                       :min-level [[#{"io.netty.*"} :info]
+                                  [#{"talk.http"} :info]
                                   [#{"*"} (or log-level :debug)]]
                       :timestamp-opts {:timezone (TimeZone/getDefault)}}))

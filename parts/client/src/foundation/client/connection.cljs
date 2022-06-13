@@ -44,6 +44,7 @@
 (defn send!
   "Send over websocket."
   [msg]
+  #_(log/debug "Sending " msg)
   (try (.send -websocket (fm/encode msg))
        (catch AssertionError e
          (log/warn "Error sending. Is ws open?" e))

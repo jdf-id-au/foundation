@@ -11,5 +11,5 @@
 
         jdf/talk {:local/root "../../../talk"}
 
-        cheshire/cheshire {:mvn/version "5.10.2"}
+        cheshire/cheshire {:mvn/version "5.11.0"}
         com.cognitect/transit-clj {:mvn/version "1.0.329"}}}
