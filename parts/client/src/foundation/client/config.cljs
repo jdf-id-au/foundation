@@ -23,7 +23,7 @@
   (let [{:keys [dev] :as from-disk} (from-disk)]
     (merge default
            (dissoc from-disk :dev)
-           (if debug? dev)
+           (when debug? dev)
            (js->clj js/config :keywordize-keys true))))
            ; TODO could re-spec here
 
@@ -32,6 +32,6 @@
   ([scheme path]
    (let [{:keys [tls host port root]
           :or {tls true root "/"}} config]
-     (str scheme (if tls "s") "://"
-          host (if port (str ":" port))
+     (str scheme (when tls "s") "://"
+          host (when port (str ":" port))
           root path))))

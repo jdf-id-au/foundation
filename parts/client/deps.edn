@@ -1,9 +1,9 @@
 {:paths ["src"]
- :deps {org.clojure/clojurescript {:mvn/version "1.11.57"}
+ :deps {org.clojure/clojurescript {:mvn/version "1.11.60"}
 
         jdf/foundation-common {:local/root "../common"}
 
         binaryage/oops {:mvn/version "0.7.2"}
-        lilactown/helix {:mvn/version "0.1.6"}
+        lilactown/helix {:mvn/version "0.1.9"}
         ; {:git/url "https://github.com/lilactown/helix.git" :sha ""}
-        com.cognitect/transit-cljs {:mvn/version "0.8.269"}}}
+        com.cognitect/transit-cljs {:mvn/version "0.8.280"}}}
