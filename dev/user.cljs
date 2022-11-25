@@ -5,7 +5,6 @@
             [common] ; dev/common.cljc
             [foundation.client.api :as f]
             [foundation.client.config :as config]
-            [tick.core :as t]
             [temper.api :as tm]
             [foundation.client.logging :as log]
             [foundation.message :as message]))

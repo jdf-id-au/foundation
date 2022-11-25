@@ -4,7 +4,7 @@
             [foundation.client.history :as history]
             [foundation.client.logging :as log]
             [foundation.client.default :as default]
-            ["react-dom" :refer [render]]
+            ["react-dom/client" :refer [createRoot]]
             [helix.core :refer [$]]
             [foundation.client.config :as config])
   (:require-macros [foundation.client.api])) ; allows f/defevent when this ns aliased as f
@@ -30,7 +30,8 @@
   (state/listen!)
   (history/listen!)
   (log/info "version" (:version config/config))
-  (render ($ root-component) (. js/document getElementById mount-point)))
+  (let [root (createRoot (. js/document getElementById mount-point))]
+    (.render root ($ root-component))))
 
 (def value-as events/value-as)
 (def as events/as)
