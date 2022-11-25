@@ -19,9 +19,10 @@
 
 (defevent ws-open
   (fn [#_{:keys [user token]} open?]
-    ;[[:send [:auth user token]]] ; TODO
-    [[:db [{:app/state :<-> :online true}]]]
-    [[:db [{:app/state :<-> :online false}]]]))
+    ;;[[:send [:auth user token]]] ; TODO
+    (if open?
+      [[:db [{:app/state :<-> :online true}]]]
+      [[:db [{:app/state :<-> :online false}]]])))
 
 (defonce -websocket ; TODO reimplement directly on js/WebSocket?
   (let [ws (WebSocket.)]
