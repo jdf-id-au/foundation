@@ -11,6 +11,7 @@ Description=App description
 [Service]
 User=www-data
 # Make sure reverse proxy points at same port.
+# Unfortunately Clojure seems to use a lot of memory.
 ExecStart=/usr/bin/java -jar /var/www/appname/appname.jar -p 8080
 WorkingDirectory=/var/www/appname
 Type=simple
