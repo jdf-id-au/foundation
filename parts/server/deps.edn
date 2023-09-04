@@ -7,7 +7,7 @@
 
         com.taoensso/timbre {:mvn/version "6.2.2"}
         com.fzakaria/slf4j-timbre {:mvn/version "0.4.0"} ; redirect dependencies' slf4j requirements
-        org.slf4j/slf4j-api {:mvn/version "2.0.7"}
+        org.slf4j/slf4j-api {:mvn/version "2.0.9"}
 
         jdf/talk {:local/root "../../../talk"}
 

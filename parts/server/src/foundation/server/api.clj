@@ -177,7 +177,7 @@
        :let [[type & _ :as validated]
              (or (fm/validate msg) [::fm/error :outgoing "Problem generating server reply." msg])
              transit (->transit validated)
-             _ (when (= type :error) (log/warn "Telling" to-user "about server error" msg))]
+             _ (when (= type ::fm/error) (log/warn "Telling" to-user "about server error" msg))]
        channel (reduce (fn [agg [ch {:keys [type username]}]]
                          (if (and (= type :ws) (= username to-user))
                            (conj agg ch)
