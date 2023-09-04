@@ -24,7 +24,8 @@
 
 (def cli-options
   "Basic set of options.
-   Don't provide defaults: they will inappropriately override config file (see `roll-up`)."
+   Don't provide defaults: they will inappropriately override config file (see `roll-up`).
+   Don't forget PLACEHOLDER tokens!"
   [["-h" "--help" "Show this help text."]
    ["-c" "--config FILE" "Use specified config file."
     :default fc/config-filename
@@ -51,10 +52,14 @@
   "Roll up relevant cli options into config (always includes: port, dry-run, log-level).
    This lets config be overridden by cli options."
   [spec {:keys [config] :as options} & additional-keys]
-  (let [key-list (conj additional-keys :port :dry-run :log-level)]
+  (let [key-list (conj additional-keys :port :dry-run :log-level)
+        config (merge (fc/load spec config) (select-keys options key-list))]
     (log/debug "Rolling up" spec "with" options "and" key-list)
-    ;; FIXME doesn't validate cli options
-    (merge (fc/load spec config) (select-keys options key-list))))
+    ;; NB double-check in case cli options cause  loaded config to become invalid
+    (if-let [explanation (s/explain-data spec config)]
+      (do (log/error "Invalid config" {:explanation explanation})
+          (throw (ex-info "Invalid config" explanation)))
+      config)))
 
 (defn validate-args
   [desc cli-options args]
