@@ -55,6 +55,7 @@
    :map "application/json; charset=utf-8" ; dev convenience
    :json "application/json; charset=utf-8"
    :csv "text/csv; charset=utf-8"
+   :xml "text/xml"
    :jpg "image/jpeg"
    :png "image/png"
    :gif "image/gif"})

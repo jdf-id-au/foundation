@@ -23,7 +23,7 @@
 ; Administration
 
 (def cli-options
-  "Basic set of options.
+  "Basic set of options. Includes config.edn by default.
    Don't provide defaults: they will inappropriately override config file (see `roll-up`).
    Don't forget PLACEHOLDER tokens!"
   [["-h" "--help" "Show this help text."]
@@ -143,7 +143,7 @@
                  (cond-> (assoc req+handler+parts :cleanup cleanup)
                    simple? (-> (dissoc :parts) (assoc :body (first parts)))
                    ; group-by will cause :parts vals to be vectors, even if only one part
-                   (not simple?) (assoc :parts (group-by (comp keyword name) parts)))]
+                   (not simple?) (assoc :parts (group-by (comp keyword :name) parts)))]
              (fsh/handler assembled server)
              (update clients channel dissoc :assemble))
            (catch Exception e
