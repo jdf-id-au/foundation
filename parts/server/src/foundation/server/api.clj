@@ -98,15 +98,17 @@
   (present [_])
   Request
   (receive [{:keys [channel method path handler route-params parts] :as this}
-            {:keys [routes clients out] :as server}]
+            {:keys [routes clients out] :as server
+             {:keys [::wrap-request]} :opts}]
     #_(assert (not (or handler route-params parts)))
     (assert (nil? (get-in clients [channel :assemble])) "Received new request while already assembling one.")
     ;(log/debug "Received" this)
     ;(log/debug "Matching" (bidi/match-route routes path))
     ; TODO handle invalid route?
-    (let [req+handler (merge this (bidi/match-route routes path))] ; adds :handler and :route-params
+    (let [req+handler (merge this (bidi/match-route routes path)) ; adds :handler and :route-params
+          handler ((or wrap-request identity) fsh/handler)] 
       (case method
-        (:get :delete) (fsh/handler req+handler server)
+        (:get :delete) (handler req+handler server)
         (:post :put :patch)
         (do (assoc-in clients [channel :assemble] (assoc req+handler :parts []))
             (async/put! out {:channel channel :status 102})) ; permit upload
@@ -135,7 +137,9 @@
   Trail
   ; NB relying on this ALWAYS appearing with PUT/POST/PATCH
   ; NB application needs to run (cleanup) when finished
-  (receive [{:keys [channel cleanup] :as this} {:keys [clients] :as server}]
+  (receive [{:keys [channel cleanup] :as this}
+            {:keys [clients] :as server
+             {:keys [::wrap-request]} :opts}]
     (if-let [{:keys [parts] :as req+handler+parts} (get-in clients [channel :assemble])]
       (try (let [simple? (and (= 1 (count parts))
                            (= "payload" (-> parts first :name))) ; from `fake-decoder`
@@ -143,8 +147,9 @@
                  (cond-> (assoc req+handler+parts :cleanup cleanup)
                    simple? (-> (dissoc :parts) (assoc :body (first parts)))
                    ; group-by will cause :parts vals to be vectors, even if only one part
-                   (not simple?) (assoc :parts (group-by (comp keyword :name) parts)))]
-             (fsh/handler assembled server)
+                   (not simple?) (assoc :parts (group-by (comp keyword :name) parts)))
+                 handler ((or wrap-request identity) fsh/handler)]
+             (handler assembled server)
              (update clients channel dissoc :assemble))
            (catch Exception e
              (cleanup)
@@ -194,6 +199,7 @@
 (defn server!
   "Set up http+websocket server using talk.api/server!
    Format in/out text ws chans with transit and dispatch messages via message/receive.
+   Need to restart server to update routes.
    TODO Format req/res guided by headers and dispatch reqs via message/handler (from http path via bidi).
    TODO Provide some auth mechanism for application to use!"
   ([port routes] (server! port routes nil))
