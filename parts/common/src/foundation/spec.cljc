@@ -7,7 +7,7 @@
             [comfort.spec :as cs])
   #?(:clj (:import (java.io File))))
 
-#?(:clj (s/def ::config-file (s/and #(clojure.string/ends-with? ".edn" %)
+#?(:clj (s/def ::config-file (s/and #(clojure.string/ends-with? % ".edn")
                                     #(.exists (io/as-file %)))))
 
 (s/def ::allowed-origin
