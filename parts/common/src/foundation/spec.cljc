@@ -5,10 +5,17 @@
                 :cljs [[cljs.spec.alpha :as s]
                        [cljs.spec.gen.alpha :as gen]])
             [comfort.spec :as cs])
-  #?(:clj (:import (java.io File))))
+  #?(:clj (:import (java.io File)
+                   (java.net URL))))
 
-#?(:clj (s/def ::config-file (s/and #(clojure.string/ends-with? % ".edn")
-                                    #(.exists (io/as-file %)))))
+#?@(:clj [(s/def ::directory #(-> % io/file .isDirectory))
+          (s/def ::file #(-> % io/file .isFile))
+          (s/def ::resource #(-> % io/resource io/file .isFile)) ; ~dev convenience
+          (s/def ::url #(try (URL. %) (catch Exception _)))
+          (s/def ::file-or-url (s/or :file ::file :resource ::resource :url ::url))
+
+          (s/def ::config-file (s/and #(clojure.string/ends-with? % ".edn")
+                                 #(.exists (io/as-file %))))])
 
 (s/def ::allowed-origin
   (s/and string?

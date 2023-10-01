@@ -55,7 +55,7 @@
   (let [key-list (conj additional-keys :port :dry-run :log-level)
         config (merge (fc/load spec config) (select-keys options key-list))]
     (log/debug "Rolling up" spec "with" options "and" key-list)
-    ;; NB double-check in case cli options cause  loaded config to become invalid
+    ;; NB double-check in case cli options cause loaded config to become invalid
     (if-let [explanation (s/explain-data spec config)]
       (do (log/error "Invalid config" {:explanation explanation})
           (throw (ex-info "Invalid config" explanation)))
@@ -103,9 +103,9 @@
     #_(assert (not (or handler route-params parts)))
     (assert (nil? (get-in clients [channel :assemble])) "Received new request while already assembling one.")
     ;(log/debug "Received" this)
-    ;(log/debug "Matching" (bidi/match-route routes path))
+    ;(log/debug "Matching" (bidi/match-route @routes path))
     ; TODO handle invalid route?
-    (let [req+handler (merge this (bidi/match-route routes path)) ; adds :handler and :route-params
+    (let [req+handler (merge this (bidi/match-route @routes path)) ; adds :handler and :route-params
           handler ((or wrap-request identity) fsh/handler)] 
       (case method
         (:get :delete) (handler req+handler server)
@@ -199,15 +199,16 @@
 (defn server!
   "Set up http+websocket server using talk.api/server!
    Format in/out text ws chans with transit and dispatch messages via message/receive.
-   Need to restart server to update routes.
+   Routes are dynamically updatable via atom, except initial ws-path at :foundation.server.api/ws.
    TODO Format req/res guided by headers and dispatch reqs via message/handler (from http path via bidi).
    TODO Provide some auth mechanism for application to use!"
   ([port routes] (server! port routes nil))
   ([port routes opts]
    (let [ws-path (bidi/path-for routes ::ws)
+         routes* (atom routes) ; make routes updatable (except ws-path)
          opts (cond-> opts ws-path (assoc :ws-path ws-path))
          server (-> (talk/server! port opts)
-                    (assoc :routes routes :opts opts))
+                    (assoc :routes routes* :opts opts))
          _ (go-loop [msg (<! (server :in))]
              (if msg
                (do (try (receive msg server) ; NB currently sequential and blocking go; think about async/thread but unclear what if anything limits size of its thread pool
