@@ -12,9 +12,9 @@
 #?(:clj (do (s/def ::directory #(-> % io/file .isDirectory))
             (s/def ::file #(-> % io/file .isFile))
             ;; FIXME make work with resources in built jar (avoid IAE: not a file jar:file:/.../blah.jar!resource.ext)
-            (s/def ::resource #(-> % io/resource io/file .isFile)) ; ~dev convenience
+            #_(s/def ::resource #(-> % io/resource io/file .isFile)) ; ~dev convenience
             (s/def ::url #(try (URL. %) (catch Exception _)))
-            (s/def ::file-or-url (s/or :file ::file :resource ::resource :url ::url))
+            (s/def ::file-or-url (s/or :file ::file #_#_ :resource ::resource :url ::url))
 
             (s/def ::config-file (s/and #(clojure.string/ends-with? % ".edn")
                                    #(.exists (io/as-file %))))))
