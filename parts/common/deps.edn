@@ -1,6 +1,6 @@
 {:paths ["src"]
  :deps {org.clojure/core.async {:mvn/version "1.6.681"} ; redundant with server->talk->core.async
-        datascript/datascript {:mvn/version "1.5.3"}
+        datascript/datascript {:mvn/version "1.6.1"}
         jdf/comfort {:local/root "../../../comfort"}
         jdf/temper {:local/root "../../../temper"}
         bidi/bidi {:mvn/version "2.1.6"}}}
