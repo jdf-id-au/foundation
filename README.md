@@ -15,7 +15,7 @@ Pursues [Jamstack](https://jamstack.org/) concept, with statically served client
 - config (baked in at build time, plus via html file)
 - simple logging to console via [devtools](https://github.com/binaryage/cljs-devtools)
 - put together with [shadow-cljs](https://github.com/thheller/shadow-cljs)
-- TODO websocket communication
+- websocket communication
 
 ### Common: `jdf/foundation-common`
 - cross-platform messaging/extra functions incl time conveniences from [jdf/temper](https://github.com/jdf-id-au/temper)

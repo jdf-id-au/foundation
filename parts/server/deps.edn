@@ -1,15 +1,15 @@
 {:paths ["src" "resources"]
- :deps {org.clojure/clojure {:mvn/version "1.11.1"}
-        org.clojure/tools.cli {:mvn/version "1.0.219"}
-        org.clojure/data.json {:mvn/version "2.5.0"}
+ :deps {org.clojure/clojure {:mvn/version "1.12.0"}
+        org.clojure/tools.cli {:mvn/version "1.0.230"}
+        org.clojure/data.json {:mvn/version "2.5.1"}
 
         jdf/foundation-common {:local/root "../common"}
 
-        com.taoensso/timbre {:mvn/version "6.3.1"}
+        com.taoensso/timbre {:mvn/version "6.6.1"}
         com.fzakaria/slf4j-timbre {:mvn/version "0.4.1"} ; redirect dependencies' slf4j requirements
-        org.slf4j/slf4j-api {:mvn/version "2.0.11"}
+        org.slf4j/slf4j-api {:mvn/version "2.0.17"}
 
         jdf/talk {:local/root "../../../talk"}
 
-        cheshire/cheshire {:mvn/version "5.12.0"}
+        cheshire/cheshire {:mvn/version "5.13.0"}
         com.cognitect/transit-clj {:mvn/version "1.0.333"}}}

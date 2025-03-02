@@ -51,9 +51,9 @@
             :when (not= ename :no-op)]
       (if-let [effect-fn (get @fx ename)]
         (do #_(log/info "Firing effect-fn" ename eargs)
-            (try (apply effect-fn eargs)
-                 (catch :default e
-                   (log/throw "Error executing effect" ename "with" args ":" e))))
+         (try (apply effect-fn eargs)
+              (catch :default e
+                (log/throw "Error executing effect" ename "with" args ":" e))))
         (if ename
           (log/throw "No such effect" ename eargs fx)
           (log/throw "Nil effect" ename eargs fx))))))
@@ -61,8 +61,8 @@
 (defevent navigate
   (fn -navigate [current-view current-rps view route-params]
     (let [rps (into {} (map (juxt first (comp str second)) route-params))]
-      (if-not (and (= view current-view)
-                   (= rps current-rps))
+      (when-not (and (= view current-view)
+                     (= rps current-rps))
         (letfn [(go [v r] (do (log/debug "Purely going" v r)
                               [[:db [{:app/state :ui :view v :route-params r}]]
                                [:navigate v r]]))

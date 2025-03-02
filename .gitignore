@@ -3,6 +3,7 @@ foundation.iml
 public/js/
 .nrepl-port
 **/.cpcache/
+.lsp/.cache/
 node_modules/
 .clj-kondo/
 .shadow-cljs/
