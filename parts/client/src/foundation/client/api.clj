@@ -1,9 +1,9 @@
 (ns foundation.client.api)
 
 (defmacro defevent
-  {:clj-kondo/ignore [:unresolved-symbol]}
   "Define two fns: <name> for actual use and <name>-impl for testing.
    See documentation for foundation.client.events/do!"
+  {:clj-kondo/ignore [:unresolved-symbol]}
   [name event-fn & coeffects]
   (let [cofx# (vec coeffects)
         doc# (str "Event called `" name "` with coeffects " cofx#)

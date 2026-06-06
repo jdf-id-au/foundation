@@ -47,7 +47,7 @@ This allows application's own parts (e.g. aliases) to pull only what they need.
 
 ### Client 
 1. `npm init`
-1. `clj -m cljs.main --install-deps` [installs upstream deps](https://clojurescript.org/reference/compiler-options#install-deps)
+1. `clj -M -m cljs.main --install-deps` [installs upstream deps](https://clojurescript.org/reference/compiler-options#install-deps)
 1. `npm i`
 1. copy `shadow-cljs.edn` and `build-client.edn` and adjust
 1. copy basic structure from `dev/user.cljs` into appropriate client namespace

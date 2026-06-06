@@ -10,8 +10,7 @@
             [foundation.client.events]) ; think this is needed for defevent macro
   (:require-macros [foundation.client.api :refer [defevent]])
   (:import (goog.net WebSocket)
-           (goog.net.WebSocket EventType) ; != (goog.net EventType)
-           (goog.asserts AssertionError)))
+           (goog.net.WebSocket EventType))) ; != (goog.net EventType)))
 
 (defevent receive fm/receive)
 
@@ -47,7 +46,7 @@
   [msg]
   #_(log/debug "Sending " msg)
   (try (.send -websocket (fm/encode msg))
-       (catch AssertionError e
+       #_(catch AssertionError e
          (log/warn "Error sending. Is ws open?" e))
        (catch js/Error e
          (log/error "Error sending." e))))

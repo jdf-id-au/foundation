@@ -50,7 +50,7 @@
 (defn listen!
   "Listen for browser address bar url #token change."
   []
-  (doto (reset! history (Html5History.))
+  (doto ^Html5History (reset! history (Html5History.))
     ; TODO refuse if (false? (.isSupported Html5History))
     ; I actually prefer token after # because it doesn't reload on manual entry.
     (.setUseFragment true)
