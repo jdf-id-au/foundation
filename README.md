@@ -1,6 +1,6 @@
 # jdf/foundation
 
-Ffff-framework for client-server web applications. Very alpha.
+Ffff-framework for client-server web applications. Used for a few projects, would benefit from more exercise.
 
 Pursues [Jamstack](https://jamstack.org/) concept, with statically served client (configurable via html and edn), websocket-centric server, and common, `clojure.spec`-ed messages over [transit](https://github.com/cognitect/transit-format).
 

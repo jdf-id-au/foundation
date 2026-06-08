@@ -35,7 +35,7 @@
         ($ :ul
           (for [s eg-sub]
             ($ :li {:key s} s)))
-        ($ :div (tm/format "HH:mm dd MMM yyyy" (tm/now)))
+        ($ :div (tm/format "dd/MM/yyyy HH:mm:ss" (tm/now)))
         ($ :button {:on-click #(click "argument")} "click me")
         ($ :button {:on-click #(ping "server?")} "ping server"))))
 

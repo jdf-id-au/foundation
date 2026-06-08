@@ -1,7 +1,8 @@
 (ns foundation.logging
   (:require [taoensso.timbre :as log]
             [taoensso.encore :as enc]
-            [clojure.string :as str])
+            [clojure.string :as str]
+            [clojure.pprint])
   (:import (java.util TimeZone)))
 
 (defn default-output-fn
@@ -16,7 +17,7 @@
        (force msg_)
        (when-not no-stacktrace?
          (when-let [err ?err]
-           (str enc/system-newline (log/stacktrace err opts))))))))
+           (str enc/newline (log/stacktrace err opts))))))))
 
 (def journald-config
   "No timestamp or hostname."
