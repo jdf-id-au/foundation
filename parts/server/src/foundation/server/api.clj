@@ -46,7 +46,7 @@
 
 (def --allow-origin
   ["-o" "--allow-origin HOST" "Allow api use from sites served at this (single) host."
-   :validate [#(s/valid? ::fs/allowed-origin %) "Invalid host."]])
+   :validate [#(s/valid? ::fs/allow-origin %) "Invalid host."]])
 
 (defn roll-up
   "Roll up relevant cli options into config (always includes: port, dry-run, log-level).
@@ -102,17 +102,17 @@
              {:keys [::wrap-request]} :opts}]
     #_(assert (not (or handler route-params parts)))
     (assert (nil? (get-in clients [channel :assemble])) "Received new request while already assembling one.")
-    ;(log/debug "Received" this)
-    ;(log/debug "Matching" (bidi/match-route @routes path))
+    #_(log/debug "Received" this)
+    #_(log/debug "Matching" (bidi/match-route @routes path))
     ; TODO handle invalid route?
     (let [req+handler (merge this (bidi/match-route @routes path)) ; adds :handler and :route-params
           handler ((or wrap-request identity) fsh/handler)] 
       (case method
-        (:get :delete) (handler req+handler server)
+        (:get :delete :head :options :trace) (handler req+handler server)
         (:post :put :patch)
         (do (assoc-in clients [channel :assemble] (assoc req+handler :parts []))
             (async/put! out {:channel channel :status 102})) ; permit upload
-        (:head :options :trace) (log/warn "Ignored HTTP" (name method) "request:" this)
+        #_#_(:head :options :trace) (log/warn "Ignored HTTP" (name method) "request:" this)
         (log/error "Unsupported HTTP method" (name method) "in:" this))))
   (present [this] this)
   Attribute
@@ -211,7 +211,9 @@
                     (assoc :routes routes* :opts opts))
          _ (go-loop [msg (<! (server :in))]
              (if msg
-               (do (try (receive msg server) ; NB currently sequential and blocking go; think about async/thread but unclear what if anything limits size of its thread pool
+               (do
+                 #_(log/debug "received" (type msg) msg)
+                 (try (receive msg server) ; NB currently sequential and blocking go; think about async/thread but unclear what if anything limits size of its thread pool
                         (catch Exception e
                           (log/error "Error handling incoming message" msg e)))
                    (recur (<! (server :in))))
