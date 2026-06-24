@@ -37,7 +37,7 @@
    (let [f (io/file filename)]
      (if (.exists f)
        (let [config (->> filename slurp edn/read-string process)]
-         (log/debug "Intepreting config" (cc/redact-keys config :password)  "against" spec)
+         (log/debug "Intepreting config" (cc/redact-keys config :password) "against" spec)
          (if-let [explanation (s/explain-data spec config)]
            ; TODO redact password here too?
            (do (log/error "Invalid config" {:explanation explanation})

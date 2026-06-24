@@ -85,6 +85,22 @@
 
 ; Server
 
+(defn run-effect
+  "Allow handler to return description of its effect rather than actually doing it.
+
+  e.g. instead of
+    (async/put! out {:channel channel :status 200})
+  return
+    {:status 200} ; plain map assumed to be ordinary response to the requesting channel
+  "
+  [wrapped-handler]
+  (fn [{:keys [channel] :as request} {:keys [out] :as server}]
+    (let [handler-returns (wrapped-handler request server)]
+      (cond (map? handler-returns) (async/put! out (assoc handler-returns :channel channel))
+            ;; TODO 2026-06-24 22:19:59 other effect descriptions
+            ;; else deal with async/put! return
+            :else :noop))))
+
 (defprotocol Receivable
   (receive [this server] "Receive typed message from talk server.")
   (present [this] "Convert to practical representation."))
@@ -99,14 +115,14 @@
   Request
   (receive [{:keys [channel method path handler route-params parts] :as this}
             {:keys [routes clients out] :as server
-             {:keys [::wrap-request]} :opts}]
+             {:keys [::wrap-handler]} :opts}]
     #_(assert (not (or handler route-params parts)))
     (assert (nil? (get-in clients [channel :assemble])) "Received new request while already assembling one.")
     #_(log/debug "Received" this)
     #_(log/debug "Matching" (bidi/match-route @routes path))
     ; TODO handle invalid route?
     (let [req+handler (merge this (bidi/match-route @routes path)) ; adds :handler and :route-params
-          handler ((or wrap-request identity) fsh/handler)] 
+          handler (cond-> fsh/handler wrap-handler wrap-handler :then run-effect)] 
       (case method
         (:get :delete :head :options :trace) (handler req+handler server)
         (:post :put :patch)
@@ -139,7 +155,7 @@
   ; NB application needs to run (cleanup) when finished
   (receive [{:keys [channel cleanup] :as this}
             {:keys [clients] :as server
-             {:keys [::wrap-request]} :opts}]
+             {:keys [::wrap-handler]} :opts}]
     (if-let [{:keys [parts] :as req+handler+parts} (get-in clients [channel :assemble])]
       (try (let [simple? (and (= 1 (count parts))
                            (= "payload" (-> parts first :name))) ; from `fake-decoder`
@@ -148,7 +164,7 @@
                    simple? (-> (dissoc :parts) (assoc :body (first parts)))
                    ; group-by will cause :parts vals to be vectors, even if only one part
                    (not simple?) (assoc :parts (group-by (comp keyword :name) parts)))
-                 handler ((or wrap-request identity) fsh/handler)]
+                 handler (cond-> fsh/handler wrap-handler wrap-handler :then run-effect)]
              (handler assembled server)
              (update clients channel dissoc :assemble))
            (catch Exception e
@@ -200,15 +216,18 @@
   "Set up http+websocket server using talk.api/server!
    Format in/out text ws chans with transit and dispatch messages via message/receive.
    Routes are dynamically updatable via atom, except initial ws-path at :foundation.server.api/ws.
+   App context is dynamically updatable via atom.
    TODO Format req/res guided by headers and dispatch reqs via message/handler (from http path via bidi).
    TODO Provide some auth mechanism for application to use!"
   ([port routes] (server! port routes nil))
-  ([port routes opts]
+  ([port routes ctx] (server! port routes ctx nil))
+  ([port routes ctx opts]
    (let [ws-path (bidi/path-for routes ::ws)
          routes* (atom routes) ; make routes updatable (except ws-path)
+         ctx* (atom ctx)
          opts (cond-> opts ws-path (assoc :ws-path ws-path))
          server (-> (talk/server! port opts)
-                    (assoc :routes routes* :opts opts))
+                  (assoc :routes routes* :ctx ctx* :opts opts))
          _ (go-loop [msg (<! (server :in))]
              (if msg
                (do
