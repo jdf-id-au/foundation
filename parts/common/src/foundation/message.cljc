@@ -17,7 +17,7 @@
 ; Let cljs.core/uuid? work on transit uuids.
 ; https://github.com/cognitect/transit-cljs/issues/18
 ; TODO remove when upstream fixed
-#?(:cljs (extend-type ty/UUID IUUID))
+;#?(:cljs (extend-type ty/UUID IUUID))
 
 (def read-handlers tt/read-handlers)
 (def write-handlers tt/write-handlers)
