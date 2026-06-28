@@ -96,9 +96,13 @@
   [wrapped-handler]
   (fn [{:keys [channel] :as request} {:keys [out] :as server}]
     (let [handler-returns (wrapped-handler request server)]
-      (cond (map? handler-returns) (async/put! out (assoc handler-returns :channel channel))
+      (cond (map? handler-returns)
+            (when-not 
+                (if-let [cleanup (::cleanup handler-returns)]
+                  (async/put! out (-> handler-returns (assoc :channel channel) (dissoc ::cleanup)) (cleanup))
+                  (async/put! out (-> handler-returns (assoc :channel channel))))
+              (log/warn "Failed to send response because out chan closed."))
             ;; TODO 2026-06-24 22:19:59 other effect descriptions
-            ;; else deal with async/put! return
             :else :noop))))
 
 (defprotocol Receivable
@@ -160,7 +164,7 @@
       (try (let [simple? (and (= 1 (count parts))
                            (= "payload" (-> parts first :name))) ; from `fake-decoder`
                  assembled
-                 (cond-> (assoc req+handler+parts :cleanup cleanup)
+                 (cond-> (assoc req+handler+parts ::cleanup cleanup)
                    simple? (-> (dissoc :parts) (assoc :body (first parts)))
                    ; group-by will cause :parts vals to be vectors, even if only one part
                    (not simple?) (assoc :parts (group-by (comp keyword :name) parts)))
