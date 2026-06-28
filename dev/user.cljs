@@ -9,11 +9,6 @@
             [foundation.client.logging :as log]
             [foundation.message :as message]))
 
-; Sets up datascript, so call even if nothing to store yet.
-#_ (f/store! {} {})
-(f/store! {} [{:name "John"}
-              {:name "Dev"}])
-
 (f/register :example '[:find [?n ...] :where [?e :name ?n]])
 
 (f/defevent click (fn [co msg] [[:clicked co msg]
@@ -39,11 +34,13 @@
         ($ :button {:on-click #(click "argument")} "click me")
         ($ :button {:on-click #(ping "server?")} "ping server"))))
 
-(defn ^:dev/after-load start-up []
-  (f/start! {:root-component app
-             :coeffects {:co [str "coeffect"]
-                         :now [tm/now]}
-             :effects {:clicked println}}))
+(defn ^:dev/after-load start []
+  (f/render! app))
 
 (defn ^:export init []
-  (start-up))
+  ;; Sets up datascript, so call even if nothing to store yet.
+  (f/store! {} [{:name "John"}
+                {:name "Dev"}])
+  (f/init! {:coeffects {:co [str "coeffect"]
+                        :now [tm/now]}
+            :effects {:clicked println}}))

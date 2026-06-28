@@ -20,9 +20,14 @@
 (def register-singleton state/register-singleton)
 (def subscribe state/subscribe)
 
-(defn start!
-  "Setup events, subscriptions, history and state, then render root component."
-  [{:keys [root-component mount-point coeffects effects routes]
+(defonce root (atom nil))
+
+(defn render! [root-component]
+  (.render @root ($ root-component)))
+
+(defn init!
+  "Setup events, subscriptions, history, state and root component."
+  [{:keys [mount-point coeffects effects routes]
     :or {mount-point "app"}}]
   (events/setup! (merge default/coeffects coeffects) (merge default/effects effects))
   (run! state/register-singleton default/subscriptions)
@@ -30,8 +35,7 @@
   (state/listen!)
   (history/listen!)
   (log/info "version" (:version config/config))
-  (let [root (createRoot (. js/document getElementById mount-point))]
-    (.render root ($ root-component))))
+  (reset! root (createRoot (. js/document getElementById mount-point))))
 
 (def value-as events/value-as)
 (def as events/as)
