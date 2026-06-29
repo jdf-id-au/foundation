@@ -21,10 +21,10 @@
     (ds/transact! conn tx-data)))
 (nxr/register-effect! ::post
   (fn [{:keys [dispatch]} system [endpoint msg] {:keys [on-success on-failure]}]
-    (log/info "sending" msg "to" endpoint)
-    (-> (js/fetch (config/api endpoint)
+    (-> (js/fetch (if (vector? endpoint) (apply config/api endpoint) (config/api endpoint))
           #js {:method "POST" :body (fm/encode msg) :keepalive true
                :headers #js {:content-type fm/transit-mime-type :accept fm/transit-mime-type}})
+      ;; TODO 2026-06-29 20:48:26 verify cookies come along for the ride
       (.then
         (fn [response]
           (case (oget response "status")
@@ -38,7 +38,7 @@
           (when on-success (dispatch on-success {:response response}))) ; "dispatch data will be merged into the original dispatch data"
         (fn [error] (if on-failure (dispatch on-failure {:error error})
                         (log/warn "Unhandled fetch error" error)))))))
-;; TODO 2026-06-29 14:25:40 compare with foundation.client.connection/http!; think about dispatch beyond just receive
+;; TODO 2026-06-29 14:25:40 think about dispatch beyond just receive
 
 ;; nxr/register-interceptor! for render lock etc https://github.com/cjohansen/nexus/blob/main/Readme.md#rendering
 (nxr/register-placeholder! ::now (fn [] (js/Date.)))
@@ -81,7 +81,7 @@
   )
 
 (defmethod fm/receive :pong [msg]
-  (log/debug "Received" msg))
+  (log/info "Received" msg))
 
 (defn ^:dev/after-load start [] (r/render el (render-page @conn)))
 

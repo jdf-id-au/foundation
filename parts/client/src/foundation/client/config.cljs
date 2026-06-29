@@ -27,11 +27,19 @@
            (js->clj js/config :keywordize-keys true))))
            ; TODO could re-spec here
 
+(defn usp ; TODO 2026-06-29 21:12:54 could move if needed elsewhere, e.g. own ns (avoid circular dep)
+  "Clojure map -> URLSearchParams; would lose ordering but I hope you're not relying on that!"
+  [params]
+  (reduce (fn [usp [k v]] (.append usp (name k) v) usp)
+    (js/URLSearchParams.)
+    params))
+
 (defn api
   ([path] (api "http" path))
-  ([scheme path]
+  ([scheme path] (api scheme path nil))
+  ([scheme path params]
    (let [{:keys [tls host port root]
           :or {tls true root "/"}} config]
      (str scheme (when tls "s") "://"
           host (when port (str ":" port))
-          root path))))
+          root path (some->> params usp .toString (str \?))))))

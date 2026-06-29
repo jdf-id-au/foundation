@@ -1,16 +1,10 @@
 (ns foundation.client.connection
-  (:require [goog.events :refer [listen]]
-            [goog.crypt.base64 :as b64]
-            [cljs.core.async :as async :refer [alts!] :refer-macros [go alt!]]
-            [cljs.core.async.interop :refer [p->c] :refer-macros [<p!]]
-            [oops.core :refer [oget oset!]]
-            [foundation.message :as fm :refer [->transit <-transit]]
+  (:require [goog.crypt.base64 :as b64]
+            [foundation.message :as fm]
             [foundation.client.config :as config]
-            [foundation.client.logging :as log])
-  (:import (goog.net WebSocket)
-           (goog.net.WebSocket EventType))) ; != (goog.net EventType)))
+            [foundation.client.logging :as log]))
 
-;; Websocket - validated on both sides
+;; ───────────────────────────────────────── Websocket - validated on both sides
 
 (defn ws-open [#_{:keys [user token]} open?]
   ;;[[:send [:auth user token]]] ; TODO
@@ -18,91 +12,40 @@
     [[:db [{:app/state :<-> :online true}]]]
     [[:db [{:app/state :<-> :online false}]]]))
 
-(def receive fm/receive)
 
-(defonce -websocket ; TODO reimplement directly on js/WebSocket?
-  (let [ws (WebSocket.)]
-    (listen ws EventType.OPENED
-            (fn [_]
-              (log/debug "Websocket open")
-              (ws-open true)))
-    (listen ws EventType.MESSAGE
-            ; NB non-conforming messages would raise error because no corresponding multimethod?
-            (fn [event] (-> event .-message fm/decode receive)))
-    (listen ws EventType.ERROR
-            (fn [event] ; TODO
-              (log/error "Websocket error" (or (.-data event) ""))))
-    (listen ws EventType.CLOSED
-            (fn [_]
-              (log/debug "Websocket closed")
-              (ws-open false)))
-    ws))
+(defonce websocket (atom nil))
 
 (defn send!
   "Send over websocket."
   [msg]
   #_(log/debug "Sending " msg)
-  (try (.send -websocket (fm/encode msg))
-       #_(catch AssertionError e
-         (log/warn "Error sending. Is ws open?" e))
-       (catch js/Error e
-         (log/error "Error sending." e))))
+  (when @websocket
+    (try (.send @websocket (fm/encode msg))
+         #_(catch AssertionError e
+             (log/warn "Error sending. Is ws open?" e))
+         (catch js/Error e
+           (log/error "Error sending." e)))))
 
 (defn websocket!
   "Connect or disconnect websocket."
   [action]
   (try (case action
-         :connect (.open -websocket (config/api "ws" "ws"))
-         :disconnect (.close -websocket))
+         :connect (reset! websocket
+                    (doto (js/WebSocket. (config/api "ws" "ws"))
+                      (.addEventListener "open" (fn [_] (log/debug "Websocket open") (ws-open true)))
+                      (.addEventListener "message" (fn [e] (-> e .-message fm/decode fm/receive)))
+                      (.addEventListener "error" (fn [e] (log/error "Websocket error" (or (.-data e) ""))))
+                      (.addEventListener "close" (fn [_] (log/debug "Websocket closed") (ws-open false)))))
+         :disconnect (do (some-> @websocket .close) (reset! websocket nil)))
        (catch :default e (log/error e))))
 
-; Ajax - validated on both sides ; TODO endpoint and params validation?
+;; ──────────────────────────────────────────────────────────────────────── Ajax
 
-(defn usp
-  "Clojure map -> URLSearchParams"
-  [params]
-  (reduce (fn [usp [k v]] (.append usp (name k) v) usp)
-    (js/URLSearchParams.)
-    params))
 
-(defn fetch
-  "More ergonomic js/fetch"
-  [url {:keys [params] :as opts}]
-  (let [url (oset! (js/URL. url) "search" (usp params))]
-    (p->c (js/fetch url (-> (dissoc opts :params)
-                          (assoc :keepalive true)
-                            (update :headers #(js/Headers. (clj->js %)))
-                            clj->js)))))
 
-(defn http! [method url opts]
-  (go (let [res-chan (fetch url (-> (assoc opts :method (name method) :mode "cors")
-                                    (update :headers assoc :accept fm/transit-mime-type)))
-            res (alt! res-chan ([v] v)
-                  ; TODO AbortController https://davidwalsh.name/cancel-fetch
-                  (async/timeout (:timeout config/config)) (ex-info "Timeout" {:error :timeout}))]
-        (-> (if (instance? cljs.core/ExceptionInfo res)
-              [::fm/error :fetch "Fetch failed" res]
-              (case (oget res "status")
-                200 (try (-> res .text p->c <! <-transit)
-                         (catch js/Error e
-                           [::fm/error :message "Unable to read fetched message" e]))
-                401 [::fm/error :auth "Unauthenticated"]
-                403 [::fm/error :auth "Unauthorised"]
-                [::fm/error :fetch "Unsupported status" res]))
-            fm/conform receive))))
+;; ──────────────────────────────────────────────────────────────────────── Auth
 
-(defn get!
-  ([endpoint] (get! endpoint {}))
-  ([endpoint opts]
-   (http! :get (config/api endpoint) opts)))
-
-(defn post!
-  [endpoint msg]
-  (http! :post (config/api endpoint) {:body (fm/encode msg)
-                                      :headers {:content-type fm/transit-mime-type}}))
-                                                ;:connection "keep-alive"}}))
-
-; NB Client should retract any password from its db...
+;; NB Client should retract any password from its db...
 (defmethod fm/receive ::fm/auth [{:keys [username token]}]
   [[:db [{:app/state :<-> :username username :token token}]]])
 

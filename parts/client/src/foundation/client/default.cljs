@@ -52,8 +52,6 @@
    :back #(.back js/window.history)
    :restart #(.assign js/window.location (subs (.-href js/window.location) 0 (.indexOf (.-href js/window.location) (.-hash js/window.location))))
    
-   :get connection/get!
-   :post connection/post!
    ;:auth connection/auth!
    :websocket connection/websocket!
    :send connection/send!})
