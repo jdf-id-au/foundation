@@ -48,7 +48,7 @@
 
 (comment
   (require '[dataspex.core :as dataspex])
-  (dataspex/inspect "DB" conn) ; TODO 2026-06-29 12:44:47 get working
+  (dataspex/inspect "DB" conn) ; TODO 2026-06-29 12:44:47 get working (did plugin pwn my Chrome?!)
   (dataspex/inspect-taps)
   )
 
