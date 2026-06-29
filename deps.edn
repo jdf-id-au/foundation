@@ -10,7 +10,8 @@
  :aliases
  {:dev {:extra-paths ["dev" "test" "../talk"] ; allow talk ns reload during dev
         :extra-deps {thheller/shadow-cljs {:mvn/version "3.4.11"}
-                     binaryage/devtools {:mvn/version "1.0.7"}}}}}
+                     binaryage/devtools {:mvn/version "1.0.7"}
+                     no.cjohansen/dataspex {:mvn/version "2026.06.3"}}}}}
 
 ; https://clojureverse.org/t/how-to-effectively-use-deps-cli/4787/14
 ; :deps/root with :git/url, or just :local/root straight in

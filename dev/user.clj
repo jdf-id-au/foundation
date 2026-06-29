@@ -21,7 +21,7 @@
 (defmethod http/handler :hello [{:keys [channel method path headers] :as request}
                                 {:keys [out] :as server
                                  {:keys [::fs/allow-origin]} :opts}]
-  #_(log/debug "hello handler" request)
+  (log/debug "hello handler" request)
   (case method
     :get {:status 200 :headers {:content-type "text/plain"}
           :content "hello"}
@@ -32,6 +32,7 @@
       ;; https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS
       ;; TODO 2026-06-08 23:04:09 cors middleware which depends on handler;
       ;; slightly harder because respond!ing directly from handler
+      ;; TODO 2026-06-29 15:06:31 make talk.api:326 accept this message, presumably because nil allow-origin
       {:status 204
        :headers {:access-control-allow-origin allow-origin
                  :access-control-allow-methods "POST, GET, OPTIONS"
@@ -54,9 +55,11 @@
            ["" [["/" {"hello" :hello
                       "ws" ::api/ws}]
                 [true ::http/file]]]
+           nil ; ctx
            {::fs/allow-origin "http://localhost:8888"}))
   ((:close s))
   (client!) ; then visit http://localhost:8888/
   (restart-client!)
   (cljs)
-  :cljs/quit)
+  :cljs/quit
+  )

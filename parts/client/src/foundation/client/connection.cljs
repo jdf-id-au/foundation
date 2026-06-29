@@ -70,7 +70,7 @@
   [url {:keys [params] :as opts}]
   (let [url (oset! (js/URL. url) "search" (usp params))]
     (p->c (js/fetch url (-> (dissoc opts :params)
-                            (assoc :keepalive true) ; ?? https://javascript.info/fetch-api#keepalive not mdn
+                          (assoc :keepalive true)
                             (update :headers #(js/Headers. (clj->js %)))
                             clj->js)))))
 

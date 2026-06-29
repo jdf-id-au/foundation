@@ -3,30 +3,87 @@
    Presented at http://localhost:8888/index.html (see shadow-cljs.edn)"
   (:require [datascript.core :as ds]
             [replicant.dom :as r]
+            [nexus.registry :as nxr]
             [common] ; dev/common.cljc
             [foundation.client.api :as f]
             [foundation.client.config :as config]
             [temper.api :as tm]
             [foundation.client.logging :as log]
-            [foundation.message :as message]))
+            [foundation.message :as fm]
+            [oops.core :refer [oget oset!]]))
 
 ;; NB 2026-06-29 10:42:31 my way was nice but replicant/nexus probably better
+;; TODO 2026-06-29 11:52:26 hook up history, think about architecture, clean up rest of foundation.client
+
+(nxr/register-system->state! deref)
+(nxr/register-effect! :db/transact
+  (fn [_ conn tx-data]
+    (ds/transact! conn tx-data)))
+(nxr/register-effect! ::post
+  (fn [{:keys [dispatch]} system [endpoint msg] {:keys [on-success on-failure]}]
+    (log/info "sending" msg "to" endpoint)
+    (-> (js/fetch (config/api endpoint)
+          #js {:method "POST" :body (fm/encode msg) :keepalive true
+               :headers #js {:content-type fm/transit-mime-type :accept fm/transit-mime-type}})
+      (.then
+        (fn [response]
+          (case (oget response "status")
+            200 (-> (.text response)
+                  (.then
+                    (fn [v] (-> v fm/decode fm/receive))
+                    (fn [e] (log/warn "Failed to read" response))))
+            401 (log/warn "Unauthenticated" response)
+            403 (log/warn "Unauthorised" response)
+            (log/warn "Unsupported status" response))
+          (when on-success (dispatch on-success {:response response}))) ; "dispatch data will be merged into the original dispatch data"
+        (fn [error] (if on-failure (dispatch on-failure {:error error})
+                        (log/warn "Unhandled fetch error" error)))))))
+;; TODO 2026-06-29 14:25:40 compare with foundation.client.connection/http!; think about dispatch beyond just receive
+
+;; nxr/register-interceptor! for render lock etc https://github.com/cjohansen/nexus/blob/main/Readme.md#rendering
+(nxr/register-placeholder! ::now (fn [] (js/Date.)))
 
 (defonce conn (ds/create-conn {}))
 (defonce el (js/document.getElementById "app"))
 
+(comment
+  (require '[dataspex.core :as dataspex])
+  (dataspex/inspect "DB" conn) ; TODO 2026-06-29 12:44:47 get working
+  (dataspex/inspect-taps)
+  )
+
 (defn render-page [db]
   (let [app (ds/entity db :system/app)]
     [:div
-     [:h1 "hello"]
-     [:p "started at" (:app/started-at app)]]))
+     [:h1 "jdf/foundation"]
+     [:h2 "v" (:version config/config)]
+     [:div "debug mode: " (if config/debug? "on" "off")]
+     [:div "config from html: " (:from_html config/config)]
+     [:p "started at" (:app/started-at app)]
+     [:button {:on {:click [[:db/transact [{:db/ident :system/app :app/started-at [::now]}]]]}}
+      "fib about time"]
+     [:button {:on {:click [[::post ["hello" [:ping :hello "message from button"]]]]}} ; dev/common.cljc message :ping
+      "ping server"]]))
 
 (defn main [conn]
   (add-watch conn ::render
     (fn [_ _ _ _]
-      (r/render el (render-page (ds/db conn)))))
+      (r/render el (render-page @conn))))
+  (r/set-dispatch!
+    (fn [dispatch-data actions]
+      (nxr/dispatch conn dispatch-data actions)))
   (ds/transact! conn [{:db/ident :system/app
                        :app/started-at (js/Date.)}]))
+
+(comment
+  (ds/transact! conn [{:db/ident :system/app
+                       :app/started-at (js/Date.)}])
+  )
+
+(defmethod fm/receive :pong [msg]
+  (log/debug "Received" msg))
+
+(defn ^:dev/after-load start [] (r/render el (render-page @conn)))
 
 (defn ^:export init []
   (main conn))
