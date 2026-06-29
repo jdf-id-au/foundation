@@ -1,9 +1,8 @@
 {:paths ["src"]
  :deps {org.clojure/clojurescript {:mvn/version "1.12.145"}
-
         jdf/foundation-common {:local/root "../common"}
-
+        no.cjohansen/replicant {:mvn/version "2026.06.2"}
+        no.cjohansen/nexus {:mvn/version "2026.06.4"}
+        com.cognitect/transit-cljs {:mvn/version "0.8.280"}
         binaryage/oops {:mvn/version "0.7.2"}
-        lilactown/helix {:mvn/version "0.2.2"}
-        ; {:git/url "https://github.com/lilactown/helix.git" :sha ""}
-        com.cognitect/transit-cljs {:mvn/version "0.8.280"}}}
+        }}

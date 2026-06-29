@@ -1,7 +1,5 @@
 (ns foundation.client.default
   (:require [foundation.client.history :as history]
-            [foundation.client.state :as state]
-            [foundation.client.events :as events]
             [foundation.client.logging :as log]
             [foundation.client.connection :as connection]
             [foundation.db :as fd]))
@@ -48,12 +46,12 @@
 
 (def effects
   "Map of :name -> function."
-  {:db state/transact!
+  {
    :debug log/debug
    :navigate history/navigate!
    :back #(.back js/window.history)
    :restart #(.assign js/window.location (subs (.-href js/window.location) 0 (.indexOf (.-href js/window.location) (.-hash js/window.location))))
-   :dispatch events/dispatch!
+   
    :get connection/get!
    :post connection/post!
    ;:auth connection/auth!

@@ -24,8 +24,6 @@
     "dependencies": {
         "@cljs-oss/module-deps": "^1.1.1",
         "@js-joda/core": "^6.0.1",
-        "react": "^19.2.7",
-        "react-dom": "^19.2.7",
         "shadow-cljs": "^3.4.11"
     }
 }

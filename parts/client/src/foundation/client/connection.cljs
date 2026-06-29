@@ -6,22 +6,19 @@
             [oops.core :refer [oget oset!]]
             [foundation.message :as fm :refer [->transit <-transit]]
             [foundation.client.config :as config]
-            [foundation.client.logging :as log]
-            [foundation.client.events]) ; think this is needed for defevent macro
-  (:require-macros [foundation.client.api :refer [defevent]])
+            [foundation.client.logging :as log])
   (:import (goog.net WebSocket)
            (goog.net.WebSocket EventType))) ; != (goog.net EventType)))
 
-(defevent receive fm/receive)
+;; Websocket - validated on both sides
 
-; Websocket - validated on both sides
+(defn ws-open [#_{:keys [user token]} open?]
+  ;;[[:send [:auth user token]]] ; TODO
+  (if open?
+    [[:db [{:app/state :<-> :online true}]]]
+    [[:db [{:app/state :<-> :online false}]]]))
 
-(defevent ws-open
-  (fn [#_{:keys [user token]} open?]
-    ;;[[:send [:auth user token]]] ; TODO
-    (if open?
-      [[:db [{:app/state :<-> :online true}]]]
-      [[:db [{:app/state :<-> :online false}]]])))
+(def receive fm/receive)
 
 (defonce -websocket ; TODO reimplement directly on js/WebSocket?
   (let [ws (WebSocket.)]
