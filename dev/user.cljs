@@ -1,6 +1,7 @@
 (ns user
   "Dev proof of concept, not a substitute for formal testing.
    Presented at http://localhost:8888/index.html (see shadow-cljs.edn)"
+  {:clj-kondo/config '{:linters {:unresolved-symbol {:exclude-patterns ["conn" "dispatch"]}}}} ; for two of f/setup's defs
   (:require [datascript.core :as ds]
             [replicant.dom :as r]
             [nexus.registry :as nxr]

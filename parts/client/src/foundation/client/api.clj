@@ -5,19 +5,20 @@
 (defmacro setup
   "def five symbols in calling ns" ; not aliasing `require`s to prevent pollution
   [gen-hiccup opts & body]
-  `(do
+  `(let [opts# ~opts]
      (require '[replicant.dom])
      (require '[nexus.registry])
      (require '[datascript.core])
      (require '[foundation.client.history])
      (require '[foundation.client.default])
-     (defonce ~'conn (datascript.core/create-conn (merge foundation.client.default/schema (:schema ~opts))))
-     (defonce ~'element (js/document.getElementById (or (:element ~opts) "app")))
+     
+     (defonce ~'conn (datascript.core/create-conn (merge foundation.client.default/schema (:schema opts#))))
+     (defonce ~'element (js/document.getElementById (or (:element opts#) "app")))
      (def ~'dispatch (partial nexus.registry/dispatch ~'conn))
      (defn ^:dev/after-load ~'render [] (replicant.dom/render ~'element (~gen-hiccup @~'conn)))
      (defn ^:export ~'init []
        (replicant.dom/set-dispatch! ~'dispatch)
-       (foundation.client.history/setup! (:routes ~opts))
+       (foundation.client.history/setup! (:routes opts#))
        (foundation.client.history/listen! ~'dispatch)
        (add-watch ~'conn ::render
          (fn [~'_ ~'_ ~'_ ~'_] (replicant.dom/render ~'element (~gen-hiccup @~'conn))))
