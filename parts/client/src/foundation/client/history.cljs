@@ -36,10 +36,11 @@
         path-check (path-for handler route-params)]
     (if (= hash path-check)
       (do (log/debug "Navigated" hash handler route-params)
-          (dispatch nil [[:db [[:db/add [:app/state :ui] :view handler]
-                               (if route-params
-                                 [:db/add [:app/state :ui] :route-params route-params]
-                                 [:db.fn/retractAttribute [:app/state :ui] :route-params])]]]))
+          (dispatch nil [[:foundation.client.api/db
+                          [[:db/add [:app/state :ui] :view handler]
+                           (if route-params
+                             [:db/add [:app/state :ui] :route-params route-params]
+                             [:db.fn/retractAttribute [:app/state :ui] :route-params])]]]))
       (do (log/warn "Corrected hash" hash "to" path-check)
           (-navigate! path-check)))))
 

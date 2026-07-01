@@ -32,10 +32,8 @@
    :<-> ; communication
    [:username :token]})
 
-(def tx-data
-  (for [ns (keys state-locations)]
-    {:app/state ns}))
+(def tx-data (vec (for [ns (keys state-locations)] {:app/state ns})))
 
-(def subscriptions
+(def subscriptions ; TODO 2026-07-01 20:35:34 adapt to new arch
   "Define some singleton storage value subscriptions, e.g. :ui/view (see `schema`)."
   (for [[n ks] state-locations k ks] (keyword n k)))

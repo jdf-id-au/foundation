@@ -11,9 +11,8 @@
             [temper.api :as tm]
             [foundation.client.logging :as log]
             [foundation.client.history :as history]
-            [foundation.client.default :as default]
             [foundation.message :as message]
-            [foundation.client.connection :as connection]))
+            ))
 
 ;; TODO 2026-06-29 11:52:26 think about architecture, clean up rest of foundation.client
 
@@ -49,7 +48,7 @@
        ["" :home]
        [true :not-found]]])
 
-(f/setup render-page {:routes routes}
+(f/setup! render-page {:routes routes}
   (ds/transact! conn [{:app/state :misc :started-at (js/Date.)}]))
 
 (defmethod message/receive :pong [msg]
@@ -57,11 +56,11 @@
   (dispatch nil [[::f/db [{:thing (:word msg)}]]]))
 
 (comment
-  (f/render)
   (ds/transact! conn [{:app/state :misc :started-at (js/Date.)}])
-  (nxr/dispatch conn (comment "dispatch data here") [[::f/db [{:app/state :misc :started-at (js/Date.)}]]])
-  (history/listen! (partial nxr/dispatch conn)) ; deactivates any old listener
-  (ds/datoms conn :eavt)
+  (dispatch (comment "dispatch data here") [[::f/db [{:thing "meh"}]]])
+  (dispatch (comment "dispatch data here") [[::f/db [{:app/state :misc :started-at (js/Date.)}]]])
+  (history/listen! dispatch) ; deactivates any old listener
+  (ds/datoms @conn :eavt)
   )
 
 (comment
