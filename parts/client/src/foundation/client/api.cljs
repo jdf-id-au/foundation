@@ -1,32 +1,35 @@
 (ns foundation.client.api
-  (:require 
-            [foundation.client.events :as events]
+  (:require [foundation.client.events :as events]
             [foundation.client.history :as history]
             [foundation.client.logging :as log]
             [foundation.client.default :as default]
-            [foundation.client.config :as config])
+            [foundation.client.connection :as connection]
+            [foundation.client.config :as config]
+            [datascript.core :as ds]
+            [replicant.dom :as r]
+            [nexus.registry :as nxr])
   )
-(comment
-  (defn store!
-    ([schema] (store! schema []))
-    ([schema tx-data]
-     #_(log/debug "setting up store with" (merge default/schema schema))
-     (state/store! (merge default/schema schema)
-       (concat default/tx-data tx-data))))
-  
 
-  (defn init!
-    "Setup events, subscriptions, history, state and root component."
-    [{:keys [mount-point coeffects effects routes]
-      :or {mount-point "app"}}]
-    
-    
-    (history/setup! (or routes default/routes))
-    
-    (history/listen!)
-    (log/info "version" (:version config/config))
-    )
+(nxr/register-system->state! deref)
+(nxr/register-effect! ::db #(ds/transact! %2 %3))
+(nxr/register-effect! ::post connection/post!) ; TODO 2026-06-29 14:25:40 think about dispatch beyond just receive
+(nxr/register-effect! ::navigate history/navigate!)
 
-  (def value-as events/value-as)
-  (def as events/as)
-  (def hot-text state/hot-text))
+(defonce render* (atom #(log/warn "Renderer not initialised")))
+(defonce conn* (atom nil)) ; will contain ds conn, itself derefable to give value
+
+(defn init [gen-hiccup & {:keys [schema tx-data routes element]
+                        :or {element "app"}}]
+  (let [conn (reset! conn* (ds/create-conn (merge default/schema schema))) ; known as "system" in nexus: "a mutable application object"
+        element (js/document.getElementById element)
+        dispatch (partial nxr/dispatch conn)]
+    (r/set-dispatch! dispatch)
+    (history/setup! routes)
+    (history/listen! dispatch)
+    (add-watch conn ::render
+      (fn [_ _ _ _]
+        ((reset! render*
+           #(r/render element (gen-hiccup @conn))))))))
+
+(defn ^:dev/after-load render [] (@render*))
+(defn conn [] @conn*)
