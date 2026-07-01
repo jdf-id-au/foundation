@@ -11,6 +11,10 @@
   (:require-macros [foundation.client.api]))
 
 (nxr/register-system->state! deref)
-(nxr/register-effect! ::db #(ds/transact! %2 %3))
-(nxr/register-effect! ::post connection/post!) ; TODO 2026-06-29 14:25:40 think about dispatch beyond just receive
-(nxr/register-effect! ::navigate history/navigate!)
+(nxr/register-placeholder! :event.target/value #(some-> % :dom-event .-target .-value))
+(def register-effect! nxr/register-effect!)
+(register-effect! ::db #(ds/transact! %2 %3))
+(register-effect! ::post connection/post!) ; TODO 2026-06-29 14:25:40 think about dispatch beyond just receive
+(register-effect! ::navigate history/navigate!)
+(register-effect! ::log (fn [_ _ msg] (log/debug msg)))
+(def q ds/q)

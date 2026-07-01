@@ -17,8 +17,10 @@
          (datascript.core/transact! (into foundation.client.default/tx-data (:tx-data opts#)))))
      (defonce ~'element (js/document.getElementById (:element opts# "app")))
      (def ~'dispatch (partial nexus.registry/dispatch ~'conn))
-     (defn ^:dev/after-load ~'render [] (replicant.dom/render ~'element (~gen-hiccup @~'conn)))
-     (defn ^:export ~'init []
+     ;; Needed this metadata syntax to survive macro:
+     (defn ~'render {:dev/after-load true} [] (replicant.dom/render ~'element (~gen-hiccup @~'conn)))
+     
+     (defn ~'init {:export true} []
        (replicant.dom/set-dispatch! ~'dispatch)
        (foundation.client.history/setup! (:routes opts#))
        (foundation.client.history/listen! ~'dispatch)
