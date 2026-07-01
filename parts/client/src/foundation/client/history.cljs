@@ -1,12 +1,9 @@
 (ns foundation.client.history
   "Eerily similar to bidi.router..."
-  (:require [goog.events]
-            [bidi.bidi :as bidi]
-            [foundation.client.events :refer [navigate]]
-            [foundation.client.logging :as log])
-  (:import (goog.history Html5History Event EventType)))
+  (:require [bidi.bidi :as bidi]
+            [foundation.client.logging :as log]))
 
-; Routing support
+;; ───────────────────────────────────────────────────────────── Routing support
 
 (defonce -routes (atom []))
 
@@ -19,51 +16,48 @@
   "Return navigation token for given route."
   [handler route-params]
   ; unwrap route-params map into k v arguments for bidi
-  (log/debug handler route-params)
   (apply bidi/path-for @-routes handler
-         (mapcat (juxt first (comp str second)) route-params)))
+    (mapcat (juxt first (comp str second)) route-params)))
 
-; History
+;; ───────────────────────────────────────────────────────────────────── History
 
-(defonce history (atom nil))
+(defn -navigate! [hash]
+  (.assign js/window.location (str \# hash)))
 
 (defn navigate!
-  "Update browser address bar url #token. `route-params` values are stringified in `path-for`."
-  ([token] (.setToken ^Html5History @history token))
-  ([handler route-params] (navigate! (path-for handler route-params))))
+  "Update browser address bar url #hash. `route-params` values are stringified in `path-for`.
+  Suitable for registration with nxr/register-effect!"
+  [{:keys [dispatch]} system [handler route-params]]
+  (-navigate! (path-for handler route-params)))
 
-(defn navigated
-  "Callback for EventType.NAVIGATE ."
-  [event]
-  (let [token (.-token ^Event event)
-        ; might not be necessary to debounce \"Navigated\" below
-        ; might actually just need to unlisten in dev setting so listeners don't accumulate
-        #_#__ (.preventDefault event)
-        {:keys [handler route-params]} (bidi/match-route @-routes token)
+(defn canonicalise [hash dispatch]
+  (let [hash (subs hash 1) ; drop initial "#" from js apis (restored in -navigate!)
+        {:keys [handler route-params]} (bidi/match-route @-routes hash)
         path-check (path-for handler route-params)]
-    (if (= token path-check)
-      (do (log/debug "Navigated" token handler route-params)
-          (navigate handler route-params))
-      (do (log/debug "Corrected token" token "to" path-check)
-          (.replaceToken ^Html5History @history path-check))))) ; redirect to canonical token
+    (if (= hash path-check)
+      (do (log/debug "Navigated" hash handler route-params)
+          (dispatch nil [[:db [[:db/add [:app/state :ui] :view handler]
+                               (if route-params
+                                 [:db/add [:app/state :ui] :route-params route-params]
+                                 [:db.fn/retractAttribute [:app/state :ui] :route-params])]]]))
+      (do (log/warn "Corrected hash" hash "to" path-check)
+          (-navigate! path-check)))))
 
-(defn listen!
-  "Listen for browser address bar url #token change."
-  []
-  (doto ^Html5History (reset! history (Html5History.))
-    ; TODO refuse if (false? (.isSupported Html5History))
-    ; I actually prefer token after # because it doesn't reload on manual entry.
-    (.setUseFragment true)
-    ; https://developers.google.com/closure/library/docs/events_tutorial
-    (.listen EventType.NAVIGATE #(navigated %)) ; fn wrap allows hot reload
-    (.setEnabled true)))
+(defn navigated [dispatch]
+  (fn [^js/NavigateEvent event]
+    (when (.-hashChange event)
+      (canonicalise (-> event .-destination .-url js/URL. .-hash)
+        dispatch))))
 
-(defn unlisten!
-  "Clear history listener(s). Dev convenience only."
-  []
-  (if @history
-    (let [capturing? #(count (.getListeners ^Html5History @history EventType.NAVIGATE %))]
-      (log/info "Removing" (capturing? true) "capturing and"
-                           (capturing? false) "non-capturing listeners.")
-      (.removeAllListeners ^Html5History @history))
-    (log/warn "No history object!")))
+(defonce listener (atom nil))
+
+(defn listen! [dispatch]
+  (when @listener
+    (log/debug "Removing previous navigate listener")
+    (.removeEventListener js/window.navigation "navigate" @listener))
+  (reset! listener (navigated dispatch))
+  (.addEventListener js/window.navigation "navigate" @listener)
+  (canonicalise (.-hash js/window.location) dispatch)) ; handle first-visit hash
+
+(defn back! [_ _ _] (.back js/window.history))
+(defn restart! [_ _ _] (.assign js/window.location "#"))

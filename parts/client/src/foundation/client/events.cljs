@@ -1,7 +1,4 @@
-(ns foundation.client.events
-  (:require [foundation.client.logging :as log]))
-
-(defn navigate [h rp])
+(ns foundation.client.events)
 
 (defn value-as
   "Convert value from string to cljs type. Use `as` instead to handle js event."
@@ -16,3 +13,10 @@
   "Convert value from js event target to cljs type."
   [t e]
   (value-as t (-> e .-target .-value)))
+
+(defn event-target-value
+  "Suitable for registration in :nexus/placeholders"
+  [{:keys [dom-event]}]
+  (some-> dom-event .-target .-value))
+
+;; etc https://github.com/cjohansen/nexus#nested-placeholders

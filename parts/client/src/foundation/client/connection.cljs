@@ -2,7 +2,8 @@
   (:require [goog.crypt.base64 :as b64]
             [foundation.message :as fm]
             [foundation.client.config :as config]
-            [foundation.client.logging :as log]))
+            [foundation.client.logging :as log]
+            [oops.core :refer [oget oset!]]))
 
 ;; ───────────────────────────────────────── Websocket - validated on both sides
 
@@ -16,32 +17,47 @@
 (defonce websocket (atom nil))
 
 (defn send!
-  "Send over websocket."
-  [msg]
-  #_(log/debug "Sending " msg)
+  "Send over websocket. Suitable for registration with nxr/register-effect!"
+  [{:keys [dispatch]} system msg]
   (when @websocket
     (try (.send @websocket (fm/encode msg))
-         #_(catch AssertionError e
-             (log/warn "Error sending. Is ws open?" e))
-         (catch js/Error e
-           (log/error "Error sending." e)))))
+         (catch js/InvalidStateError e (log/error "Error sending." e)))))
 
 (defn websocket!
-  "Connect or disconnect websocket."
-  [action]
+  "Connect or disconnect websocket. Suitable for registration with nxr/register-effect!"
+  [{:keys [dispatch]} system action]
   (try (case action
          :connect (reset! websocket
                     (doto (js/WebSocket. (config/api "ws" "ws"))
-                      (.addEventListener "open" (fn [_] (log/debug "Websocket open") (ws-open true)))
+                      (.addEventListener "open" (fn [_] (log/debug "Websocket open") (dispatch (ws-open true))))
                       (.addEventListener "message" (fn [e] (-> e .-message fm/decode fm/receive)))
                       (.addEventListener "error" (fn [e] (log/error "Websocket error" (or (.-data e) ""))))
-                      (.addEventListener "close" (fn [_] (log/debug "Websocket closed") (ws-open false)))))
+                      (.addEventListener "close" (fn [_] (log/debug "Websocket closed") (dispatch (ws-open false))))))
          :disconnect (do (some-> @websocket .close) (reset! websocket nil)))
        (catch :default e (log/error e))))
 
 ;; ──────────────────────────────────────────────────────────────────────── Ajax
 
-
+(defn post!
+  "Suitable for registration with nxr/register-effect!"
+  [{:keys [dispatch]} system [endpoint msg] {:keys [on-success on-failure]}]
+    (-> (js/fetch (if (vector? endpoint) (apply config/api endpoint) (config/api endpoint))
+          #js {:method "POST" :body (fm/encode msg) :keepalive true
+               :headers #js {:content-type fm/transit-mime-type :accept fm/transit-mime-type}})
+      ;; TODO 2026-06-29 20:48:26 verify cookies come along for the ride
+      (.then
+        (fn [response]
+          (case (oget response "status")
+            200 (-> (.text response)
+                  (.then
+                    (fn [v] (-> v fm/decode fm/receive))
+                    (fn [e] (log/warn "Failed to read" response))))
+            401 (log/warn "Unauthenticated" response)
+            403 (log/warn "Unauthorised" response)
+            (log/warn "Unsupported status" response))
+          (when on-success (dispatch on-success {:response response}))) ; "dispatch data will be merged into the original dispatch data"
+        (fn [error] (if on-failure (dispatch on-failure {:error error})
+                        (log/warn "Unhandled fetch error" error))))))
 
 ;; ──────────────────────────────────────────────────────────────────────── Auth
 

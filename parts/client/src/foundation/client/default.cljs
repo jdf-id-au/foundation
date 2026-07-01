@@ -1,13 +1,15 @@
 (ns foundation.client.default
   (:require [foundation.client.history :as history]
+            [foundation.client.config :as config]
             [foundation.client.logging :as log]
             [foundation.client.connection :as connection]
-            [foundation.db :as fd]))
+            [foundation.message :as fm]
+            [foundation.db :as fd]
+            [oops.core :refer [oget oset!]]))
 
 (def routes
-  "Associate navigation tokens (being the part of URL after #) with routes."
-  ["" [["/"
-        ; This map is accessed by history/routed-views:
+  "Associate navigation hash with routes." ; bidi doesn't like "#" at root
+  ["" [["/" ; This map is accessed by history/routed-views:
         {"" :home
          "not-found" :not-found}] ; needed to make catchall routeable
        ["" :home]
@@ -37,21 +39,3 @@
 (def subscriptions
   "Define some singleton storage value subscriptions, e.g. :ui/view (see `schema`)."
   (for [[n ks] state-locations k ks] (keyword n k)))
-
-; Support pure event-fns
-
-(def coeffects
-  "Map of :name -> [function & args]."
-  {})
-
-(def effects
-  "Map of :name -> function."
-  {
-   :debug log/debug
-   :navigate history/navigate!
-   :back #(.back js/window.history)
-   :restart #(.assign js/window.location (subs (.-href js/window.location) 0 (.indexOf (.-href js/window.location) (.-hash js/window.location))))
-   
-   ;:auth connection/auth!
-   :websocket connection/websocket!
-   :send connection/send!})
