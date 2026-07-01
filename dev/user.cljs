@@ -41,10 +41,6 @@
       "ping server"]
      ]))
 
-(defmethod message/receive :pong [msg]
-  (log/info "Received" msg)
-  (nxr/dispatch (f/conn) nil [[::f/db [{:thing (:word msg)}]]]))
-
 (def routes ; see foundation.client.default/routes
   ["" [["/" {"" :home
              "example" :example
@@ -52,20 +48,23 @@
        ["" :home]
        [true :not-found]]])
 
-(defn ^:export init []
-  (f/init render-page {:routes routes})
-  (ds/transact! (f/conn) [{:app/state :misc :started-at (js/Date.)}]))
+(f/setup render-page {:routes routes}
+  (ds/transact! conn [{:app/state :misc :started-at (js/Date.)}]))
+
+(defmethod message/receive :pong [msg]
+  (log/info "Received" msg)
+  (dispatch nil [[::f/db [{:thing (:word msg)}]]]))
 
 (comment
   (f/render)
-  (ds/transact! (f/conn) [{:app/state :misc :started-at (js/Date.)}])
-  (nxr/dispatch (f/conn) (comment "dispatch data here") [[::f/db [{:app/state :misc :started-at (js/Date.)}]]])
-  (history/listen! (partial nxr/dispatch (f/conn))) ; deactivates any old listener
-  (ds/datoms @(f/conn) :eavt)
+  (ds/transact! conn [{:app/state :misc :started-at (js/Date.)}])
+  (nxr/dispatch conn (comment "dispatch data here") [[::f/db [{:app/state :misc :started-at (js/Date.)}]]])
+  (history/listen! (partial nxr/dispatch conn)) ; deactivates any old listener
+  (ds/datoms conn :eavt)
   )
 
 (comment
   (require '[dataspex.core :as dataspex])
-  (dataspex/inspect "DB" (f/conn)) ; TODO 2026-06-29 12:44:47 get working (did plugin pwn my Chrome?!)
+  (dataspex/inspect "DB" conn) ; TODO 2026-06-29 12:44:47 get working (did plugin pwn my Chrome?!)
   (dataspex/inspect-taps)
   )
