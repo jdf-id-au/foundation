@@ -26,7 +26,8 @@
        (foundation.client.history/listen! ~'dispatch)
        (add-watch ~'conn ::render
          (fn [~'_ ~'_ ~'_ ~'_] (replicant.dom/render ~'element (~gen-hiccup @~'conn))))
-       ~@body)))
+       ~@body
+       (~'render))))
 
 (comment
   (setup! gen-hic {:element "hmm"} (ds/do-something @conn)) ; use cider-macroexpand-1 (C-c RET) to inspect
