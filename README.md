@@ -8,9 +8,8 @@ Pursues [Jamstack](https://jamstack.org/) concept, with statically served client
 
 ### Client: `jdf/foundation-client`
 - [datascript](https://github.com/tonsky/datascript) store
-- pure event functions
-- subscriptions, coeffects and effects somewhat like [re-frame](https://github.com/day8/re-frame)
-- React hooks via [helix](https://github.com/Lokeh/helix)
+- [replicant](https://github.com/cjohansen/replicant) rendering
+- [nexus](https://github.com/cjohansen/nexus) action dispatch
 - Html5History URL fragment management
 - config (baked in at build time, plus via html file)
 - simple logging to console via [devtools](https://github.com/binaryage/cljs-devtools)

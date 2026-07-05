@@ -219,8 +219,9 @@
 (defn server!
   "Set up http+websocket server using talk.api/server!
    Format in/out text ws chans with transit and dispatch messages via message/receive.
-   Routes are dynamically updatable via atom, except initial ws-path at :foundation.server.api/ws.
-   App context is dynamically updatable via atom.
+   Routes are dynamically updatable via `routes` atom, except initial ws-path at :foundation.server.api/ws.
+   App context is dynamically updatable via `ctx` atom.
+   Options for jdf/talk are passed with `opts`.
    TODO Format req/res guided by headers and dispatch reqs via message/handler (from http path via bidi).
    TODO Provide some auth mechanism for application to use!"
   ([port routes] (server! port routes nil))
