@@ -1,7 +1,5 @@
 (ns foundation.client.api)
 
-;; NB 2026-07-01 17:28:59 cider cljs :cljs/quit doesn't restore clj repl until eval something directly in it...?
-
 (defmacro setup!
   "def five symbols in calling ns" ; not aliasing `require`s to prevent pollution
   [gen-hiccup opts & body]
@@ -24,8 +22,7 @@
        (replicant.dom/set-dispatch! ~'dispatch)
        (foundation.client.history/setup! (:routes opts#))
        (foundation.client.history/listen! ~'dispatch)
-       (add-watch ~'conn ::render
-         (fn [~'_ ~'_ ~'_ ~'_] (replicant.dom/render ~'element (~gen-hiccup @~'conn))))
+       (add-watch ~'conn ::render (fn [~'_ ~'_ ~'_ ~'_] (~'render) #_(replicant.dom/render ~'element (~gen-hiccup @~'conn))))
        ~@body
        (~'render))))
 
