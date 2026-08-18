@@ -2,6 +2,8 @@
   "Common basic functionality for web applications."
   (:require [clojure.spec.alpha :as s]
             [clojure.tools.cli :as cli]
+            [clojure.string :as str]
+            [clojure.test :refer [with-test is]]
             [taoensso.timbre :as log]
             [foundation.spec :as fs]
             [foundation.config :as fc]
@@ -20,7 +22,7 @@
            (java.nio ByteBuffer)
            (java.io FileReader FileInputStream)))
 
-; Administration
+;; ────────────────────────────────────────────────────────────── Administration
 
 (def cli-options
   "Basic set of options. Includes config.edn by default.
@@ -43,6 +45,8 @@
   ["-r" "--repl PORT" "Provide nREPL on specified port."
    :parse-fn #(Integer/parseInt %)
    :validate [#(s/valid? ::fs/repl %) "Please use port in range 9000-9999."]])
+
+(s/def ::allow-origin ::fs/allow-origin)
 
 (def --allow-origin
   ["-o" "--allow-origin HOST" "Allow api use from sites served at this (single) host."
@@ -83,7 +87,7 @@
   (let [{exit-args :exit :as validated} (validate-args desc cli-options args)]
     (if exit-args (apply exit exit-args) validated)))
 
-; Server
+;; ────────────────────────────────────────────────────────────────────── Server
 
 (defn run-effect
   "Allow handler to return description of its effect rather than actually doing it.
@@ -104,6 +108,34 @@
               (log/warn "Failed to send response because out chan closed."))
             ;; TODO 2026-06-24 22:19:59 other effect descriptions
             :else :noop))))
+
+(with-test
+  (defn camelify-kebab
+    [kw] (->> (str/split (name kw) #"-") (map str/capitalize) (interpose \-) (apply str)))
+  (is (= "Example-Thing" (camelify-kebab :example-thing))))
+
+(defn allow "CORS preflight"
+  ;; TODO 2026-06-08 22:46:26 maybe :access-control-request-headers
+  ;; TODO 2026-06-08 22:48:57 :access-control-allow-credentials
+  ;; https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS
+  ;; TODO 2026-06-08 23:04:09 cors middleware which depends on handler;
+  ;; slightly harder because respond!ing directly from handler
+  ;; TODO 2026-06-29 15:06:31 make talk.api:326 accept this message, presumably because nil allow-origin
+  [origin methods headers]
+  (let [methods-str (some->> methods (map (comp str/upper-case name))
+                      (interpose ", ") (apply str))
+        headers-str (some->> headers (map camelify-kebab) (interpose ", ")
+                      (apply str))]
+    {:status 204
+     :headers (cond-> {}
+                origin (assoc :access-control-allow-origin origin)
+                methods-str (assoc :access-control-allow-methods methods-str)
+                ;; Chrome requires this, and :access-control-allow-origin in actual response
+                headers-str (assoc :access-control-allow-headers headers-str))}))
+
+(comment
+  (allow "hmm" [:post] [:content-type])
+  )
 
 (defprotocol Receivable
   (receive [this server] "Receive typed message from talk server.")

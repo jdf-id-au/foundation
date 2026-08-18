@@ -41,23 +41,24 @@
 (defn post!
   "Suitable for registration with nxr/register-effect!"
   [{:keys [dispatch]} system [endpoint msg] {:keys [on-success on-failure]}]
-    (-> (js/fetch (if (vector? endpoint) (apply config/api endpoint) (config/api endpoint))
-          #js {:method "POST" :body (fm/encode msg) :keepalive true
-               :headers #js {:content-type fm/transit-mime-type :accept fm/transit-mime-type}})
-      ;; TODO 2026-06-29 20:48:26 verify cookies come along for the ride
-      (.then
-        (fn [response]
-          (case (oget response "status")
-            200 (-> (.text response)
-                  (.then
-                    (fn [v] (-> v fm/decode fm/receive))
-                    (fn [e] (log/warn "Failed to read" response))))
-            401 (log/warn "Unauthenticated" response)
-            403 (log/warn "Unauthorised" response)
-            (log/warn "Unsupported status" response))
-          (when on-success (dispatch on-success {:response response}))) ; "dispatch data will be merged into the original dispatch data"
-        (fn [error] (if on-failure (dispatch on-failure {:error error})
-                        (log/warn "Unhandled fetch error" error))))))
+  (js/console.log "post!" endpoint msg)
+  (-> (js/fetch (if (vector? endpoint) (apply config/api endpoint) (config/api endpoint))
+        #js {:method "POST" :body (fm/encode msg) :keepalive true
+             :headers #js {:content-type fm/transit-mime-type :accept fm/transit-mime-type}})
+    ;; TODO 2026-06-29 20:48:26 verify cookies come along for the ride
+    (.then
+      (fn [response]
+        (case (oget response "status")
+          200 (-> (.text response)
+                (.then
+                  (fn [v] (-> v fm/decode fm/receive))
+                  (fn [e] (log/warn "Failed to read" response))))
+          401 (log/warn "Unauthenticated" response)
+          403 (log/warn "Unauthorised" response)
+          (log/warn "Unsupported status" response))
+        (when on-success (dispatch on-success {:response response}))) ; "dispatch data will be merged into the original dispatch data"
+      (fn [error] (if on-failure (dispatch on-failure {:error error})
+                      (log/warn "Unhandled fetch error" error))))))
 
 ;; ──────────────────────────────────────────────────────────────────────── Auth
 

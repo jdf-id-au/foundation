@@ -19,7 +19,7 @@
             (s/def ::config-file (s/and #(clojure.string/ends-with? % ".edn")
                                    #(.exists (io/as-file %))))))
 
-(s/def ::allow-origin
+(s/def ::allow-origin ; goes in server opts rather than ctx; doesn't need to be dynamic
   (s/and string?
          #(let [{:keys [scheme host port path]} (cs/URI-parts %)]
             ; https://developers.google.com/web/updates/2020/07/referrer-policy-new-chrome-default#what_does_this_change_mean

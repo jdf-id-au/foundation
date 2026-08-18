@@ -1,10 +1,9 @@
 (ns user
   (:require [shadow.cljs.devtools.server :as server]
             [shadow.cljs.devtools.api :as shadow]
-            [foundation.server.api :as api]
+            [foundation.server.api :as fs]
             [foundation.server.http :as http]
             [foundation.logging :as fl]
-            [foundation.spec :as fs]
             [common]
             [foundation.message :as message]
             [clojure.core.async :as async]
@@ -25,19 +24,7 @@
   (case method
     :get {:status 200 :headers {:content-type "text/plain"}
           :content "hello"}
-    :options ; manual preflight
-    (if (= (:access-control-request-method headers) "POST")
-      ;; TODO 2026-06-08 22:46:26 maybe :access-control-request-headers
-      ;; TODO 2026-06-08 22:48:57 :access-control-allow-credentials
-      ;; https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS
-      ;; TODO 2026-06-08 23:04:09 cors middleware which depends on handler;
-      ;; slightly harder because respond!ing directly from handler
-      ;; TODO 2026-06-29 15:06:31 make talk.api:326 accept this message, presumably because nil allow-origin
-      {:status 204
-       :headers {:access-control-allow-origin allow-origin
-                 :access-control-allow-methods "POST, GET, OPTIONS"
-                 ;; Chrome requires this
-                 :access-control-allow-headers "Content-Type"}})
+    :options (fs/allow allow-origin #{:post} #{:content-type})
     :post
     {:status 200
      :headers {:content-type "application/transit+json"
@@ -51,9 +38,9 @@
 (fl/configure :debug)
 
 (comment
-  (def s (api/server! 8126
+  (def s (fs/server! 8126
            ["" [["/" {"hello" :hello
-                      "ws" ::api/ws}]
+                      "ws" ::fs/ws}]
                 [true ::http/file]]]
            nil ; ctx
            {::fs/allow-origin "http://localhost:8888"}))
