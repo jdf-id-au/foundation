@@ -10,8 +10,8 @@
 (defn ws-open [#_{:keys [user token]} open?]
   ;;[[:send [:auth user token]]] ; TODO
   (if open?
-    [[:db [{:app/state :<-> :online true}]]]
-    [[:db [{:app/state :<-> :online false}]]]))
+    [[:db [{:app/state :auth :online true}]]]
+    [[:db [{:app/state :auth :online false}]]]))
 
 
 (defonce websocket (atom nil))
@@ -64,7 +64,7 @@
 
 ;; NB Client should retract any password from its db...
 (defmethod fm/receive ::fm/auth [{:keys [username token]}]
-  [[:db [{:app/state :<-> :username username :token token}]]])
+  [[:db [{:app/state :auth :username username :token token}]]])
 
 (defn auth-header
   "Create header for Basic authentication (Authorization header)."

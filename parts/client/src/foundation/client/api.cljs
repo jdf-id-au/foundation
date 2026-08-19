@@ -20,7 +20,7 @@
 (register-effect! ::db #(ds/transact! %2 %3))
 (register-effect! ::post connection/post!) ; TODO 2026-06-29 14:25:40 think about dispatch beyond just receive
 (register-effect! ::navigate history/navigate!)
-(register-effect! ::log (fn [_ _ msg] (log/info msg)))
+(register-effect! ::log (fn [_context _system msg] (log/info msg)))
 (register-effect! ::prevent-default (fn [{{:replicant/keys [:dom-event]} :dispatch-data} _]
                                       (some-> dom-event .preventDefault)))
 (def q ds/q)

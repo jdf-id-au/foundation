@@ -24,7 +24,7 @@
   (case method
     :get {:status 200 :headers {:content-type "text/plain"}
           :content "hello"}
-    :options (fs/allow allow-origin #{:post} #{:content-type})
+    :options (fs/allow :origin allow-origin :methods [:post] :headers [:content-type])
     :post
     {:status 200
      :headers {:content-type "application/transit+json"

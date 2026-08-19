@@ -57,8 +57,8 @@
 
 (comment
   (ds/transact! conn [{:app/state :misc :started-at (js/Date.)}])
-  (dispatch (comment "dispatch data here") [[::f/db [{:thing "meh"}]]])
-  (dispatch (comment "dispatch data here") [[::f/db [{:app/state :misc :started-at (js/Date.)}]]])
+  (dispatch (comment "dispatch context here") [[::f/db [{:thing "meh"}]]])
+  (dispatch (comment "dispatch context here") [[::f/db [{:app/state :misc :started-at (js/Date.)}]]])
   (history/listen! dispatch) ; deactivates any old listener
   (ds/datoms @conn :eavt)
   )

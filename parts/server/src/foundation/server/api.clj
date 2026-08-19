@@ -114,28 +114,34 @@
     [kw] (->> (str/split (name kw) #"-") (map str/capitalize) (interpose \-) (apply str)))
   (is (= "Example-Thing" (camelify-kebab :example-thing))))
 
-(defn allow "CORS preflight"
-  ;; TODO 2026-06-08 22:46:26 maybe :access-control-request-headers
-  ;; TODO 2026-06-08 22:48:57 :access-control-allow-credentials
-  ;; https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS
-  ;; TODO 2026-06-08 23:04:09 cors middleware which depends on handler;
-  ;; slightly harder because respond!ing directly from handler
-  ;; TODO 2026-06-29 15:06:31 make talk.api:326 accept this message, presumably because nil allow-origin
-  [origin methods headers]
-  (let [methods-str (some->> methods (map (comp str/upper-case name))
-                      (interpose ", ") (apply str))
-        headers-str (some->> headers (map camelify-kebab) (interpose ", ")
-                      (apply str))]
-    {:status 204
-     :headers (cond-> {}
-                origin (assoc :access-control-allow-origin origin)
-                methods-str (assoc :access-control-allow-methods methods-str)
-                ;; Chrome requires this, and :access-control-allow-origin in actual response
-                headers-str (assoc :access-control-allow-headers headers-str))}))
-
-(comment
-  (allow "hmm" [:post] [:content-type])
-  )
+(with-test
+  (defn allow "CORS preflight"
+    ;; TODO 2026-06-08 22:46:26 maybe :access-control-request-headers
+    ;; TODO 2026-06-08 22:48:57 :access-control-allow-credentials
+    ;; https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS
+    ;; TODO 2026-06-08 23:04:09 cors middleware which depends on handler;
+    ;; slightly harder because respond!ing directly from handler
+    ;; TODO 2026-06-29 15:06:31 make talk.api:326 accept this message, presumably because nil allow-origin
+    [& {:keys [origin methods headers]}]
+    (let [methods-str (some->> methods (map (comp str/upper-case name))
+                        (interpose ", ") (apply str))
+          headers-str (some->> headers (map camelify-kebab) (interpose ", ")
+                        (apply str))]
+      {:status 204
+       :headers (cond-> {}
+                  origin (assoc :access-control-allow-origin origin)
+                  methods-str (assoc :access-control-allow-methods methods-str)
+                  ;; Chrome requires this, and :access-control-allow-origin in actual response
+                  headers-str (assoc :access-control-allow-headers headers-str))}))
+  (is (= (allow
+           :origin "http://example.com"
+           :methods [:post]
+           :headers[:content-type])
+        {:status 204,
+         :headers
+         {:access-control-allow-origin "http://example.com",
+          :access-control-allow-methods "POST",
+          :access-control-allow-headers "Content-Type"}})))
 
 (defprotocol Receivable
   (receive [this server] "Receive typed message from talk server.")
