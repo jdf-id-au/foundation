@@ -14,15 +14,16 @@
        (doto (datascript.core/create-conn (merge foundation.client.default/schema (:schema opts#)))
          (datascript.core/transact! (into foundation.client.default/tx-data (:tx-data opts#)))))
      (defonce ~'element (js/document.getElementById (:element opts# "app")))
-     (def ~'dispatch (partial nexus.registry/dispatch ~'conn))
-     ;; Needed this metadata syntax to survive macro:
-     (defn ~'render {:dev/after-load true} [] (replicant.dom/render ~'element (~gen-hiccup @~'conn)))
+     (defn ~'dispatch [~'dispatch-data ~'actions] ; clearer than `partial`
+       (nexus.registry/dispatch ~'conn ~'dispatch-data ~'actions))
+     (defn ~'render {:dev/after-load true} ; needed this metadata syntax to survive macro
+       [] (replicant.dom/render ~'element (~gen-hiccup @~'conn)))
      
      (defn ~'init {:export true} []
        (replicant.dom/set-dispatch! ~'dispatch)
        (foundation.client.history/setup! (:routes opts#))
        (foundation.client.history/listen! ~'dispatch)
-       (add-watch ~'conn ::render (fn [~'_ ~'_ ~'_ ~'_] (~'render) #_(replicant.dom/render ~'element (~gen-hiccup @~'conn))))
+       (add-watch ~'conn ::render (fn [~'_ ~'_ ~'_ ~'_] (~'render)))
        ~@body
        (~'render))))
 

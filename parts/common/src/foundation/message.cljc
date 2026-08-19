@@ -24,6 +24,8 @@
 
 (def transit-mime-type "application/transit+json")
 
+;; NB use `encode` and `decode` wrappers instead:
+
 (defprotocol Transitable
   (<-transit [this] "Decode data structure from transit contained in some type."))
 
@@ -33,6 +35,8 @@
           java.io.File
           ; FIXME Strictly should go via FileReader to ensure correct charset!
           (<-transit [this] (<-transit (FileInputStream. this)))
+          talk.http.File
+          (<-transit [this] (<-transit (ByteArrayInputStream. (:value this))))
           String
           (<-transit [this] (<-transit (ByteArrayInputStream. (.getBytes this))))
           InputStream

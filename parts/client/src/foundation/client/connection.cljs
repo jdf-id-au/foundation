@@ -41,7 +41,6 @@
 (defn post!
   "Suitable for registration with nxr/register-effect!"
   [{:keys [dispatch]} system [endpoint msg] {:keys [on-success on-failure]}]
-  (js/console.log "post!" endpoint msg)
   (-> (js/fetch (if (vector? endpoint) (apply config/api endpoint) (config/api endpoint))
         #js {:method "POST" :body (fm/encode msg) :keepalive true
              :headers #js {:content-type fm/transit-mime-type :accept fm/transit-mime-type}})
