@@ -4,13 +4,15 @@
             [comfort.gen :refer [retag]]
             [temper.transit :as tt]
             #?@(:clj  [[taoensso.timbre :as log]
-                       [clojure.spec.alpha :as s]]
+                       [clojure.spec.alpha :as s]
+                       [talk.http]] ; https://clojuredocs.org/clojure.core/defrecord#example-542692d2c026201cdc326f87
                 :cljs [[foundation.client.logging :as log]
                        [cljs.spec.alpha :as s]
                        [com.cognitect.transit.types :as ty]]))
   #?(:cljs (:require-macros [foundation.message :refer [message]]))
   #?(:clj (:import (java.io ByteArrayOutputStream ByteArrayInputStream FileReader FileInputStream InputStream)
-                   (java.nio CharBuffer))))
+                   (java.nio CharBuffer)
+                   (talk.http File))))
 
 ; Transit
 
