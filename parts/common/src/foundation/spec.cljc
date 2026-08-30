@@ -28,16 +28,21 @@
 (s/def ::recaptcha-key ::cs/non-blank-string)
 (s/def ::recaptcha-secret ::cs/non-blank-string)
 
-(s/def ::port (s/int-in 8000 9000))
-(s/def ::repl (s/int-in 9000 10000))
+(s/def ::port integer?) ; TODO 2026-08-30 19:20:05 better validation
+(s/def ::repl ::port)
+(s/def ::root (s/and string? #(re-matches #"/(.*/)?" %))) ; i.e. starts and ends with /
 
-(s/def :api/tls boolean?)
-(s/def :api/host string?)
-(s/def :api/port ::port)
-(s/def :client/dev (s/keys :opt-un [:api/tls :api/host :api/port ::log-level]))
-(s/def ::client-config
-  (s/keys :opt-un [; dev contents promoted to root in goog.DEBUG mode
-                   :client/dev
-                   :api/tls :api/host :api/port ::log-level]))
+(s/def ::tls boolean?)
+(s/def ::host (s/or :name string? :code #{:site-local}))
+(s/def ::origin-port ::port) ; intended for server only, connections from origin port
+(s/def ::client-root ::root)
+
+(s/def ::dev (s/keys :opt-un [::tls ::host ::port ::root ::log-level]))
+
+(s/def ::client-config ; see `foundation.client.config`
+  (s/keys
+    :opt-un [::tls ::host ::port ::root ::log-level
+             ;; dev contents promoted to root in goog.DEBUG mode by `foundation.client.config/configure`
+             ::dev]))
 
 (s/def ::config (s/keys :opt-un [::recaptcha-key ::recaptcha-secret]))

@@ -1,6 +1,7 @@
 (ns foundation.client.connection
   (:require [goog.crypt.base64 :as b64]
             [foundation.message :as fm]
+            [foundation.api :as fa]
             [foundation.client.config :as config]
             [foundation.client.logging :as log]
             [oops.core :refer [oget oset!]]))
@@ -28,7 +29,7 @@
   [{:keys [dispatch]} system action]
   (try (case action
          :connect (reset! websocket
-                    (doto (js/WebSocket. (config/api "ws" "ws"))
+                    (doto (js/WebSocket. (fa/endpoint (assoc config/config :scheme "ws") {:path "/ws"}))
                       (.addEventListener "open" (fn [_] (log/debug "Websocket open") (dispatch (ws-open true))))
                       (.addEventListener "message" (fn [e] (-> e .-message fm/decode fm/receive)))
                       (.addEventListener "error" (fn [e] (log/error "Websocket error" (or (.-data e) ""))))
